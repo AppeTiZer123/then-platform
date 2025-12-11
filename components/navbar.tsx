@@ -2,22 +2,35 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { Menu, Shield, FileText, MessageCircle, Settings, Bot, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useAuth } from "@/lib/auth-context";
 
-const navLinks = [
+const publicLinks = [
   { href: "/", label: "หน้าแรก", icon: Shield },
   { href: "/report", label: "แจ้งความ", icon: FileText },
   { href: "/ai-chat", label: "AI ปรึกษา", icon: Bot },
   { href: "/consult", label: "ติดต่อเจ้าหน้าที่", icon: MessageCircle },
-  { href: "/admin", label: "Admin", icon: Settings },
 ];
+
+const adminLink = { href: "/admin", label: "Admin", icon: Settings };
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const { data: session, status } = useSession();
+  
+  const isAuthenticated = !!session?.user;
+  const user = session?.user;
+  
+  // แสดง Admin link เฉพาะ role admin
+  const isAdmin = user?.role === "admin";
+  const navLinks = isAdmin ? [...publicLinks, adminLink] : publicLinks;
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    window.location.href = "/";
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -43,10 +56,12 @@ export function Navbar() {
 
         {/* Desktop CTA / Auth */}
         <div className="hidden md:flex items-center gap-3">
-          {isAuthenticated ? (
+          {status === "loading" ? (
+            <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+          ) : isAuthenticated ? (
             <>
-              <span className="text-sm text-muted-foreground">{user?.phone}</span>
-              <Button variant="outline" size="sm" onClick={logout}>
+              <span className="text-sm text-muted-foreground">{user?.name || user?.phone}</span>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 ออกจากระบบ
               </Button>
@@ -91,8 +106,8 @@ export function Navbar() {
               <div className="border-t border-border mt-4 pt-4 flex flex-col gap-3">
                 {isAuthenticated ? (
                   <>
-                    <p className="text-sm text-muted-foreground px-3">{user?.phone}</p>
-                    <Button variant="outline" onClick={() => { logout(); setIsOpen(false); }} className="w-full">
+                    <p className="text-sm text-muted-foreground px-3">{user?.name || user?.phone}</p>
+                    <Button variant="outline" onClick={() => { handleLogout(); setIsOpen(false); }} className="w-full">
                       <LogOut className="mr-2 h-4 w-4" />
                       ออกจากระบบ
                     </Button>

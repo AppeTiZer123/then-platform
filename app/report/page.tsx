@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -20,14 +21,15 @@ import {
   ImagePlus,
   Lock
 } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
 
 export default function ReportPage() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { data: session, status } = useSession();
+  const isAuthenticated = !!session?.user;
+  const user = session?.user;
   
   const [step, setStep] = useState<"contact" | "story" | "processing" | "complete">("contact");
   const [contactInfo, setContactInfo] = useState(() => ({
-    name: "",
+    name: user?.name || "",
     phone: user?.phone || "",
     email: ""
   }));
@@ -35,7 +37,7 @@ export default function ReportPage() {
   const [referenceNumber, setReferenceNumber] = useState("");
 
   // Show loading while checking auth
-  if (isLoading) {
+  if (status === "loading") {
     return (
       <main className="min-h-screen flex flex-col">
         <Navbar />
@@ -50,7 +52,7 @@ export default function ReportPage() {
     );
   }
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated (middleware handles this but fallback)
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen flex flex-col bg-muted/30">

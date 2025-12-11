@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { 
   LayoutDashboard, 
   FileText, 
@@ -10,7 +11,9 @@ import {
   Settings,
   Menu,
   Shield,
-  LogOut
+  LogOut,
+  Loader2,
+  Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -20,15 +23,20 @@ const sidebarLinks = [
   { href: "/admin/reports", label: "รายการแจ้งความ", icon: FileText },
   { href: "/admin/fraud-list", label: "บัญชีมิจฉาชีพ", icon: AlertTriangle },
   { href: "/admin/settings", label: "ตั้งค่า", icon: Settings },
+  { href: "/", label: "กลับหน้าแรก", icon: Home },
 ];
 
 // Move SidebarContent outside the component to avoid re-creating on each render
 function SidebarContent({ 
-  pathname, 
-  onLinkClick 
+  pathname,
+  userName,
+  onLinkClick,
+  onLogout
 }: { 
-  pathname: string; 
+  pathname: string;
+  userName: string;
   onLinkClick?: () => void;
+  onLogout: () => void;
 }) {
   return (
     <div className="flex flex-col h-full">
@@ -67,13 +75,16 @@ function SidebarContent({
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-sidebar-border">
-        <Link
-          href="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+        <p className="px-3 py-1 text-xs text-sidebar-foreground/50 mb-2">
+          {userName || "Admin"}
+        </p>
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors w-full"
         >
           <LogOut className="h-5 w-5" />
           ออกจากระบบ
-        </Link>
+        </button>
       </div>
     </div>
   );
@@ -85,19 +96,57 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const user = session?.user;
+
+  // Handle logout
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/");
+  };
+
+  // Loading state
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Not logged in - middleware จะ handle แต่ใส่ไว้เผื่อ
+  if (!session) {
+    return null;
+  }
+
+  // Middleware จะ handle role check แล้ว แต่ใส่ fallback ไว้
+  if (user?.role !== "admin") {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex bg-background">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-sidebar border-r border-sidebar-border">
-        <SidebarContent pathname={pathname} />
+        <SidebarContent 
+          pathname={pathname} 
+          userName={user?.name || user?.phone || "Admin"}
+          onLogout={handleLogout}
+        />
       </aside>
 
       {/* Mobile Sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="p-0 w-64 bg-sidebar border-sidebar-border">
-          <SidebarContent pathname={pathname} onLinkClick={() => setSidebarOpen(false)} />
+          <SidebarContent 
+            pathname={pathname} 
+            userName={user?.name || user?.phone || "Admin"}
+            onLinkClick={() => setSidebarOpen(false)}
+            onLogout={handleLogout}
+          />
         </SheetContent>
       </Sheet>
 
@@ -120,9 +169,11 @@ export default function AdminLayout({
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:block">Admin User</span>
+            <span className="text-sm text-muted-foreground hidden sm:block">
+              {user?.name || user?.phone}
+            </span>
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-              A
+              {user?.name?.[0]?.toUpperCase() || "A"}
             </div>
           </div>
         </header>
