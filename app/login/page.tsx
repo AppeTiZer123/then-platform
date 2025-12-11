@@ -2,29 +2,27 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, KeyRound, ArrowLeft, Loader2, Shield } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
+import { requestOTP } from "@/lib/actions/auth";
+
+// Mock OTP สำหรับ dev
+const MOCK_OTP = "123456";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, verifyOTP, pendingPhone, isAuthenticated } = useAuth();
   
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Redirect if already logged in
-  if (isAuthenticated) {
-    router.push("/report");
-    return null;
-  }
+  const [pendingPhone, setPendingPhone] = useState("");
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,11 +31,12 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
     
-    const success = await login(phone);
-    if (success) {
+    const result = await requestOTP(phone);
+    if (result.success) {
+      setPendingPhone(phone);
       setStep("otp");
     } else {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setError(result.message);
     }
     setIsLoading(false);
   };
@@ -49,11 +48,33 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
     
-    const success = await verifyOTP(otp);
-    if (success) {
-      router.push("/report");
-    } else {
+    // Validate OTP client-side (ใน production จะ validate ที่ server)
+    if (otp !== MOCK_OTP) {
       setError("รหัส OTP ไม่ถูกต้อง");
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      // signIn โดยตรง - ไม่ต้อง validate OTP ใน NextAuth อีกแล้ว
+      const result = await signIn("otp", {
+        phone: pendingPhone,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+        setIsLoading(false);
+        return;
+      }
+
+      // Refresh to get session
+      router.refresh();
+      
+      // Redirect
+      router.push("/");
+    } catch {
+      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
     }
     setIsLoading(false);
   };
