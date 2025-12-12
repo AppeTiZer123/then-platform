@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Navbar } from "@/components/navbar";
@@ -29,11 +29,14 @@ export default function CompleteProfilePage() {
     return null;
   }
 
-  // ถ้ามี name แล้ว (profile ครบแล้ว) ไปหน้าหลัก
-  if (session.user.name) {
-    router.push("/");
-    return null;
-  }
+  // ถ้ามี name แล้ว (profile ครบแล้ว) ให้ redirect หลัง render
+  useEffect(() => {
+    if (session.user.name) {
+      router.push("/");
+    }
+  }, [session?.user?.name, router]);
+
+  if (session.user.name) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
