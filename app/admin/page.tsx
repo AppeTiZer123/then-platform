@@ -10,6 +10,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import { mockDashboardStats, mockReports, formatCurrency } from "@/lib/mock-data";
+import Link from "next/link";
 
 const stats = [
   {
@@ -66,34 +67,39 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
+          // decide link target
+          const href = stat.title === "บัญชีมิจฉาชีพ" ? "/admin/fraud-list" : stat.title === "คดีทั้งหมด" ? "/admin/reports" : `/admin/reports?status=${stat.title === "รอดำเนินการ" ? "pending" : stat.title === "กำลังดำเนินการ" ? "in_progress" : ""}`;
+
           return (
-            <Card key={index}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold mt-1">{stat.value.toLocaleString()}</p>
-                    <div className="flex items-center gap-1 mt-2">
-                      {stat.changeType === "positive" && (
-                        <ArrowUp className="h-3 w-3 text-green-500" />
-                      )}
-                      {stat.changeType === "negative" && (
-                        <ArrowDown className="h-3 w-3 text-red-500" />
-                      )}
-                      <span className={`text-xs ${
-                        stat.changeType === "positive" ? "text-green-500" :
-                        stat.changeType === "negative" ? "text-red-500" : "text-muted-foreground"
-                      }`}>
-                        {stat.change} จากเดือนก่อน
-                      </span>
+            <Link key={index} href={href} className="block transform transition hover:-translate-y-0.5 hover:shadow-md">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">{stat.title}</p>
+                      <p className="text-2xl font-bold mt-1">{stat.value.toLocaleString()}</p>
+                      <div className="flex items-center gap-1 mt-2">
+                        {stat.changeType === "positive" && (
+                          <ArrowUp className="h-3 w-3 text-green-500" />
+                        )}
+                        {stat.changeType === "negative" && (
+                          <ArrowDown className="h-3 w-3 text-red-500" />
+                        )}
+                        <span className={`text-xs ${
+                          stat.changeType === "positive" ? "text-green-500" :
+                          stat.changeType === "negative" ? "text-red-500" : "text-muted-foreground"
+                        }`}>
+                          {stat.change} จากเดือนก่อน
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`${stat.color} p-2.5 rounded-lg`}>
+                      <Icon className="h-5 w-5 text-white" />
                     </div>
                   </div>
-                  <div className={`${stat.color} p-2.5 rounded-lg`}>
-                    <Icon className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>
@@ -133,38 +139,44 @@ export default function AdminDashboard() {
             <CardDescription>รายการที่ต้องดำเนินการ</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="font-medium text-sm">คดีรอตรวจสอบ</p>
-                  <p className="text-xs text-muted-foreground">ต้องมอบหมายเจ้าหน้าที่</p>
+            <Link href="/admin/reports?status=pending" className="block">
+              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-sm">คดีรอตรวจสอบ</p>
+                    <p className="text-xs text-muted-foreground">ต้องมอบหมายเจ้าหน้าที่</p>
+                  </div>
                 </div>
+                <Badge variant="secondary">{mockDashboardStats.pendingReports}</Badge>
               </div>
-              <Badge variant="secondary">{mockDashboardStats.pendingReports}</Badge>
-            </div>
+            </Link>
             
-            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-sm">กำลังดำเนินการ</p>
-                  <p className="text-xs text-muted-foreground">รอติดตามผล</p>
+            <Link href="/admin/reports?status=in_progress" className="block">
+              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="font-medium text-sm">กำลังดำเนินการ</p>
+                    <p className="text-xs text-muted-foreground">รอติดตามผล</p>
+                  </div>
                 </div>
+                <Badge variant="secondary">{mockDashboardStats.inProgressReports}</Badge>
               </div>
-              <Badge variant="secondary">{mockDashboardStats.inProgressReports}</Badge>
-            </div>
+            </Link>
             
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-sm">เสร็จสิ้นแล้ว</p>
-                  <p className="text-xs text-muted-foreground">เดือนนี้</p>
+            <Link href="/admin/reports?status=completed" className="block">
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-sm">เสร็จสิ้นแล้ว</p>
+                    <p className="text-xs text-muted-foreground">เดือนนี้</p>
+                  </div>
                 </div>
+                <Badge variant="secondary">{mockDashboardStats.completedReports}</Badge>
               </div>
-              <Badge variant="secondary">{mockDashboardStats.completedReports}</Badge>
-            </div>
+            </Link>
           </CardContent>
         </Card>
       </div>

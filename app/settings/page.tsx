@@ -4,20 +4,17 @@ import React, { useState } from "react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import UserManagement from "./components/UserManagement"
-import RolesPermissions from "./components/RolesPermissions"
-import SystemConfig from "./components/SystemConfig"
+
 import DataManagement from "./components/DataManagement"
 import SecuritySettings from "./components/SecuritySettings"
-import FeatureToggles from "./components/FeatureToggles"
+
 import Integrations from "./components/Integrations"
 
 const SECTIONS = [
   { key: "users", label: "การจัดการผู้ใช้" },
-  { key: "roles", label: "สิทธิ์/บทบาท" },
-  { key: "system", label: "การตั้งค่าระบบ" },
   { key: "data", label: "การจัดการข้อมูล" },
   { key: "security", label: "ความปลอดภัย" },
-  { key: "features", label: "Feature Toggles" },
+  
   { key: "integrations", label: "Integrations" },
 ]
 
@@ -55,11 +52,10 @@ export default function SettingsPage() {
 
         <section className="md:col-span-3">
           {active === "users" && <UserManagement />}
-          {active === "roles" && <RolesPermissions />}
-          {active === "system" && <SystemConfig />}
+          {/* removed roles & system sections */}
           {active === "data" && <DataManagement />}
           {active === "security" && <SecuritySettings />}
-          {active === "features" && <FeatureToggles />}
+          {/* removed features section */}
           {active === "integrations" && <Integrations />}
         </section>
       </div>

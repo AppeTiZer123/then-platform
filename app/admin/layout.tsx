@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -8,10 +8,12 @@ import {
   LayoutDashboard, 
   FileText, 
   AlertTriangle, 
+  MessageCircle,
   Settings,
   Menu,
   Shield,
   LogOut,
+  Key,
   Loader2,
   Home
 } from "lucide-react";
@@ -22,6 +24,7 @@ const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/reports", label: "รายการแจ้งความ", icon: FileText },
   { href: "/admin/fraud-list", label: "บัญชีมิจฉาชีพ", icon: AlertTriangle },
+  { href: "/admin/chat", label: "แชท", icon: MessageCircle },
   { href: "/admin/settings", label: "ตั้งค่า", icon: Settings },
   { href: "/", label: "กลับหน้าแรก", icon: Home },
 ];
@@ -99,6 +102,9 @@ export default function AdminLayout({
   const router = useRouter();
   const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   const user = session?.user;
 
@@ -107,6 +113,32 @@ export default function AdminLayout({
     await signOut({ redirect: false });
     router.push("/");
   };
+
+
+  // Close menu when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleDown(e: MouseEvent) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (menuRef.current?.contains(target)) return;
+      if (buttonRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    }
+
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleDown);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [menuOpen]);
 
   // Loading state
   if (status === "loading") {
@@ -172,8 +204,66 @@ export default function AdminLayout({
             <span className="text-sm text-muted-foreground hidden sm:block">
               {user?.name || user?.phone}
             </span>
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-              {user?.name?.[0]?.toUpperCase() || "A"}
+
+            <div className="relative">
+              <button
+                ref={buttonRef}
+                aria-label="Account menu"
+                onClick={() => setMenuOpen((s) => !s)}
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-sm hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <span className="sr-only">Open user menu</span>
+                <span className="text-sm font-medium">
+                  {user?.name?.[0]?.toUpperCase() || "A"}
+                </span>
+              </button>
+
+              {menuOpen && (
+                <div ref={menuRef} className="absolute right-0 mt-2 w-64 bg-popover rounded-lg shadow-lg ring-1 ring-black/5 z-50">
+                  <div className="p-3 border-b border-muted-foreground/10">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+                        {user?.name?.[0]?.toUpperCase() || "A"}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">Hi! {user?.name || "Admin"}</p>
+                        <p className="text-xs text-muted-foreground">Login time : {new Date().toLocaleString('th-TH', { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' })}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-2 space-y-1">
+
+                    <Link
+                      href="/"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 text-sm rounded hover:bg-muted/50"
+                    >
+                      <Home className="w-4 h-4" />
+                      กลับหน้าแรก
+                    </Link>
+
+                    <Link
+                      href="/admin/settings"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 text-sm rounded hover:bg-muted/50"
+                    >
+                      <Settings className="w-4 h-4" />
+                      ตั้งค่า
+                    </Link>
+
+                    <div className="pt-2 border-t border-muted-foreground/10 px-3">
+                      <button
+                        onClick={() => { setMenuOpen(false); handleLogout(); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded bg-destructive/10 text-sm text-destructive hover:brightness-95"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        ออกจากระบบ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

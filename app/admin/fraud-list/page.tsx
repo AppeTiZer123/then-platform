@@ -30,7 +30,30 @@ const getStatusBadge = (status: FraudAccount["status"]) => {
 export default function FraudListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [fraudAccounts] = useState(mockFraudAccounts);
+  const [addForm, setAddForm] = useState({
+    accountIdSelection: "", // id of existing account to autofill (or empty for new)
+    accountNumber: "",
+    bankName: "",
+    accountName: "",
+    phoneNumber: "",
+    reportCount: 0,
+    totalDamage: 0,
+    status: "pending" as FraudAccount["status"],
+  });
+  const [fraudAccounts, setFraudAccounts] = useState(mockFraudAccounts);
+  const [selectedAccount, setSelectedAccount] = useState<FraudAccount | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    accountNumber: "",
+    bankName: "",
+    accountName: "",
+    phoneNumber: "",
+    reportCount: 0,
+    totalDamage: 0,
+    status: "pending" as FraudAccount["status"],
+  });
 
   const filteredAccounts = fraudAccounts.filter((account) => {
     return (
@@ -40,6 +63,50 @@ export default function FraudListPage() {
       account.phoneNumber?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+
+  const openEdit = (account: FraudAccount) => {
+    setSelectedAccount(account);
+    setEditForm({
+      accountNumber: account.accountNumber,
+      bankName: account.bankName,
+      accountName: account.accountName || "",
+      phoneNumber: account.phoneNumber || "",
+      reportCount: account.reportCount,
+      totalDamage: account.totalDamage,
+      status: account.status,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleEditSave = (e: any) => {
+    e.preventDefault();
+    if (!selectedAccount) return;
+    setFraudAccounts((prev) =>
+      prev.map((a) => (a.id === selectedAccount.id ? { ...a, ...{
+        accountNumber: editForm.accountNumber,
+        bankName: editForm.bankName,
+        accountName: editForm.accountName,
+        phoneNumber: editForm.phoneNumber,
+        reportCount: Number(editForm.reportCount),
+        totalDamage: Number(editForm.totalDamage),
+        status: editForm.status,
+      } } : a))
+    );
+    setIsEditOpen(false);
+    setSelectedAccount(null);
+  };
+
+  const openDelete = (account: FraudAccount) => {
+    setSelectedAccount(account);
+    setIsDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedAccount) return;
+    setFraudAccounts((prev) => prev.filter((a) => a.id !== selectedAccount.id));
+    setIsDeleteOpen(false);
+    setSelectedAccount(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -56,39 +123,139 @@ export default function FraudListPage() {
               เพิ่มบัญชี
             </Button>
           </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>เพิ่มบัญชีมิจฉาชีพ</DialogTitle>
+                <DialogDescription>
+                  เลือกบัญชีจากรายการหรือกรอกข้อมูลเอง แล้วกดบันทึก
+                </DialogDescription>
+              </DialogHeader>
+              <form
+                className="space-y-4 mt-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  // add new account
+                  const newAccount: FraudAccount = {
+                    id: String(Date.now()),
+                    accountNumber: addForm.accountNumber,
+                    bankName: addForm.bankName,
+                    accountName: addForm.accountName || undefined,
+                    phoneNumber: addForm.phoneNumber || undefined,
+                    reportCount: Number(addForm.reportCount) || 0,
+                    totalDamage: Number(addForm.totalDamage) || 0,
+                    lastReportedAt: new Date().toISOString(),
+                    status: addForm.status,
+                  };
+                  setFraudAccounts((prev) => [newAccount, ...prev]);
+                  setIsAddDialogOpen(false);
+                  setAddForm({ accountIdSelection: "", accountNumber: "", bankName: "", accountName: "", phoneNumber: "", reportCount: 0, totalDamage: 0, status: "pending" });
+                }}
+              >
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">เลขบัญชี *</label>
+                  <Input value={addForm.accountNumber} onChange={(e) => setAddForm((s) => ({ ...s, accountNumber: e.target.value }))} placeholder="xxx-x-xxxxx-x" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">ธนาคาร *</label>
+                  <select
+                    className="w-full rounded-md border px-3 py-2"
+                    value={addForm.bankName}
+                    onChange={(e) => setAddForm((s) => ({ ...s, bankName: e.target.value }))}
+                  >
+                    <option value="">-- เลือกธนาคาร --</option>
+                    {[...new Set(mockFraudAccounts.map((a) => a.bankName))].map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">ชื่อบัญชี</label>
+                  <Input value={addForm.accountName} onChange={(e) => setAddForm((s) => ({ ...s, accountName: e.target.value }))} placeholder="ชื่อเจ้าของบัญชี" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">เบอร์โทรศัพท์</label>
+                  <Input value={addForm.phoneNumber} onChange={(e) => setAddForm((s) => ({ ...s, phoneNumber: e.target.value }))} placeholder="08x-xxx-xxxx" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">จำนวนรายงาน</label>
+                    <Input type="number" value={String(addForm.reportCount)} onChange={(e) => setAddForm((s) => ({ ...s, reportCount: Number(e.target.value) }))} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">ความเสียหาย (บาท)</label>
+                    <Input type="number" value={String(addForm.totalDamage)} onChange={(e) => setAddForm((s) => ({ ...s, totalDamage: Number(e.target.value) }))} />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => { setIsAddDialogOpen(false); setAddForm({ accountIdSelection: "", accountNumber: "", bankName: "", accountName: "", phoneNumber: "", reportCount: 0, totalDamage: 0, status: "pending" }); }}>
+                    ยกเลิก
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    บันทึก
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+        </Dialog>
+        {/* Edit dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>เพิ่มบัญชีมิจฉาชีพ</DialogTitle>
-              <DialogDescription>
-                กรอกข้อมูลบัญชีที่ต้องการเพิ่มในรายการมิจฉาชีพ
-              </DialogDescription>
+              <DialogTitle>ดู / แก้ไข บัญชี</DialogTitle>
+              <DialogDescription>ตรวจสอบและแก้ไขข้อมูลบัญชี</DialogDescription>
             </DialogHeader>
-            <form className="space-y-4 mt-4">
+            <form className="space-y-4 mt-2" onSubmit={handleEditSave}>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">เลขบัญชี *</label>
-                <Input placeholder="xxx-x-xxxxx-x" />
+                <label className="text-sm font-medium mb-1.5 block">เลขบัญชี</label>
+                <Input value={editForm.accountNumber} onChange={(e) => setEditForm((s) => ({ ...s, accountNumber: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">ธนาคาร *</label>
-                <Input placeholder="ชื่อธนาคาร" />
+                <label className="text-sm font-medium mb-1.5 block">ธนาคาร</label>
+                <Input value={editForm.bankName} onChange={(e) => setEditForm((s) => ({ ...s, bankName: e.target.value }))} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">ชื่อบัญชี</label>
-                <Input placeholder="ชื่อเจ้าของบัญชี" />
+                <Input value={editForm.accountName} onChange={(e) => setEditForm((s) => ({ ...s, accountName: e.target.value }))} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">เบอร์โทรศัพท์</label>
-                <Input placeholder="08x-xxx-xxxx" />
+                <Input value={editForm.phoneNumber} onChange={(e) => setEditForm((s) => ({ ...s, phoneNumber: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">จำนวนรายงาน</label>
+                  <Input type="number" value={String(editForm.reportCount)} onChange={(e) => setEditForm((s) => ({ ...s, reportCount: Number(e.target.value) }))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">ความเสียหาย (บาท)</label>
+                  <Input type="number" value={String(editForm.totalDamage)} onChange={(e) => setEditForm((s) => ({ ...s, totalDamage: Number(e.target.value) }))} />
+                </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsAddDialogOpen(false)}>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => { setIsEditOpen(false); setSelectedAccount(null); }}>
                   ยกเลิก
                 </Button>
-                <Button type="submit" className="flex-1">
-                  บันทึก
-                </Button>
+                <Button type="submit" className="flex-1">บันทึก</Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete confirmation dialog */}
+        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>ยืนยันการลบ</DialogTitle>
+              <DialogDescription>คุณต้องการลบบัญชีนี้จริงหรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้</DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-3 pt-4">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => { setIsDeleteOpen(false); setSelectedAccount(null); }}>
+                ยกเลิก
+              </Button>
+              <Button type="button" variant="destructive" className="flex-1" onClick={handleConfirmDelete}>
+                ลบ
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -152,10 +319,10 @@ export default function FraudListPage() {
                     </td>
                     <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(account)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded" onClick={() => openDelete(account)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
