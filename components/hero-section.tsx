@@ -15,9 +15,10 @@ export function HeroSection() {
       <div className="container mx-auto px-4 py-16 md:py-24 lg:py-32 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
+          {/* Badge - AI Document Helper */}
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 mb-6">
             <Shield className="h-4 w-4" />
-            <span className="text-sm font-medium">ระบบรับแจ้งความออนไลน์</span>
+            <span className="text-sm font-medium">AI ช่วยเตรียมเอกสารแจ้งความ</span>
           </div>
 
           {/* Headline */}
@@ -29,8 +30,8 @@ export function HeroSection() {
 
           {/* Description */}
           <p className="text-lg md:text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-            แค่เล่าเหตุการณ์ที่ถูกหลอกลวง AI จะช่วยวิเคราะห์และสร้างเอกสารใบแจ้งความให้อัตโนมัติ
-            พร้อมตรวจสอบบัญชีมิจฉาชีพ และปรึกษาเจ้าหน้าที่ได้ตลอด 24 ชั่วโมง
+            แค่เล่าเหตุการณ์ที่ถูกหลอกลวง AI จะช่วยวิเคราะห์และสร้างเอกสาร PDF พร้อมยื่นที่สถานีตำรวจ
+            รวมถึงตรวจสอบบัญชีมิจฉาชีพ และรับคำปรึกษาจาก AI ตลอด 24 ชั่วโมง
           </p>
 
           {/* CTA Buttons */}
@@ -42,9 +43,9 @@ export function HeroSection() {
               </Link>
             </Button>
             <Button size="lg" className="bg-white text-primary hover:bg-white/90" asChild>
-              <Link href="/consult">
+              <Link href="/ai-chat">
                 <MessageCircle className="mr-2 h-5 w-5" />
-                ปรึกษาเจ้าหน้าที่
+                AI ให้คำปรึกษา
               </Link>
             </Button>
           </div>
@@ -52,20 +53,20 @@ export function HeroSection() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold">15,000+</div>
-              <div className="text-sm text-white/70">คดีที่ดำเนินการ</div>
+              <div className="text-2xl md:text-3xl font-bold">ง่าย</div>
+              <div className="text-sm text-white/70">แค่เล่าเรื่อง</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold">234</div>
-              <div className="text-sm text-white/70">บัญชีมิจฉาชีพ</div>
+              <div className="text-2xl md:text-3xl font-bold">PDF</div>
+              <div className="text-sm text-white/70">พร้อมยื่นตำรวจ</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold">98%</div>
-              <div className="text-sm text-white/70">ความพึงพอใจ</div>
+              <div className="text-2xl md:text-3xl font-bold">ฟรี</div>
+              <div className="text-sm text-white/70">ไม่มีค่าใช้จ่าย</div>
             </div>
             <div className="text-center">
               <div className="text-2xl md:text-3xl font-bold">24/7</div>
-              <div className="text-sm text-white/70">พร้อมให้บริการ</div>
+              <div className="text-sm text-white/70">AI พร้อมช่วยเหลือ</div>
             </div>
           </div>
         </div>

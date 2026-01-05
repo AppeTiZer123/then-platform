@@ -1,9 +1,119 @@
-// Mock AI responses for consultation
+// AI responses for consultation - uses Server Action for database queries
+import { searchFraudAccountFromDB } from "./actions/fraud";
+
+// Type for fraud account (matches database schema)
+interface FraudAccount {
+  id: string;
+  accountNumber: string;
+  bankName: string;
+  accountName: string | null;
+  phoneNumber: string | null;
+  reportCount: number | null;
+  totalDamage: string | null;
+  status: string | null;
+  lastReportedAt: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+}
+
+// Regex patterns สำหรับตรวจจับข้อมูลที่ต้องค้นหา
+const ACCOUNT_NUMBER_PATTERN = /\d{3}-?\d-?\d{5}-?\d|\d{10,}/g;
+const PHONE_PATTERN = /0\d{1,2}[-\s]?\d{3}[-\s]?\d{4}|0\d{8,9}/g;
+
+// ดึง query จาก message สำหรับค้นหามิจฉาชีพ
+function extractSearchQuery(message: string): string | null {
+  // ลองหาเลขบัญชีก่อน
+  const accountMatches = message.match(ACCOUNT_NUMBER_PATTERN);
+  if (accountMatches && accountMatches.length > 0) {
+    return accountMatches[0];
+  }
+
+  // ลองหาเบอร์โทร
+  const phoneMatches = message.match(PHONE_PATTERN);
+  if (phoneMatches && phoneMatches.length > 0) {
+    return phoneMatches[0];
+  }
+
+  // ลองหาชื่อจาก pattern "ตรวจสอบชื่อ xxx" หรือ "ค้นหา xxx"
+  const namePatterns = [
+    /ตรวจสอบ(?:ชื่อ)?\s*[:\s]?\s*(.+)/i,
+    /ค้นหา(?:ชื่อ)?\s*[:\s]?\s*(.+)/i,
+    /เช็ค(?:ชื่อ)?\s*[:\s]?\s*(.+)/i,
+  ];
+
+  for (const pattern of namePatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      // ถ้าเจอแล้วเป็นตัวเลข ให้ข้ามไป (จะจับโดย pattern ด้านบนแทน)
+      const extracted = match[1].trim();
+      if (!/^\d+$/.test(extracted.replace(/-/g, ""))) {
+        return extracted;
+      }
+    }
+  }
+
+  return null;
+}
+
+// สร้าง response สำหรับผลการค้นหามิจฉาชีพ
+function formatFraudResponse(account: FraudAccount): string {
+  const statusMap: Record<string, string> = {
+    confirmed: "🔴 ยืนยันแล้ว",
+    investigating: "🟡 กำลังตรวจสอบ",
+    pending: "⚪ รอตรวจสอบ",
+  };
+
+  return `⚠️ พบรายงานมิจฉาชีพ!
+
+📋 ข้อมูลบัญชี:
+• ชื่อบัญชี: ${account.accountName || "ไม่ระบุ"}
+• เลขบัญชี: ${account.accountNumber}
+• ธนาคาร: ${account.bankName}
+• เบอร์โทร: ${account.phoneNumber || "ไม่ระบุ"}
+
+📊 สถิติ:
+• ถูกรายงาน: ${account.reportCount || 0} ครั้ง
+• ความเสียหายรวม: ${formatCurrency(account.totalDamage)}
+• สถานะ: ${statusMap[account.status || 'pending'] || account.status}
+
+⚠️ คำเตือน: โปรดระวังการทำธุรกรรมกับบุคคลนี้!
+
+หากคุณถูกหลอกลวงโดยบุคคลนี้ สามารถใช้ระบบ "เล่าเรื่อง ให้ AI สร้างเอกสาร" เพื่อสร้างเอกสารแจ้งความได้ครับ`;
+}
+
+function formatNotFoundResponse(query: string): string {
+  return `✅ ไม่พบในฐานข้อมูลมิจฉาชีพ
+
+ไม่พบข้อมูล "${query}" ในระบบฐานข้อมูลมิจฉาชีพของเรา
+
+⚠️ หมายเหตุ: 
+• การไม่พบในฐานข้อมูลไม่ได้หมายความว่าปลอดภัย 100%
+• ควรตรวจสอบข้อมูลจากหลายแหล่งก่อนทำธุรกรรม
+• หากมีข้อสงสัย ควรใช้บริการเก็บเงินปลายทาง
+
+ต้องการสอบถามเพิ่มเติมไหมครับ?`;
+}
+
+// ตรวจสอบว่าข้อความต้องการค้นหามิจฉาชีพหรือไม่
+function shouldSearchFraud(message: string): boolean {
+  const searchKeywords = [
+    "ตรวจสอบ", "ค้นหา", "เช็ค", "เช็ก", "check",
+    "มิจฉาชีพ", "บัญชี", "เลขบัญชี", "เบอร์",
+    "หลอกลวง", "โกง", "น่าเชื่อถือ", "ปลอดภัย"
+  ];
+
+  const lowerMessage = message.toLowerCase();
+  const hasKeyword = searchKeywords.some(keyword => lowerMessage.includes(keyword));
+  const hasPattern = ACCOUNT_NUMBER_PATTERN.test(message) || PHONE_PATTERN.test(message);
+
+  return hasKeyword || hasPattern;
 }
 
 // Predefined responses based on keywords
@@ -15,10 +125,6 @@ const responses: { keywords: string[]; response: string }[] = [
   {
     keywords: ["โดนโกง", "ถูกหลอก", "โกง", "หลอก"],
     response: "เข้าใจครับ การถูกหลอกลวงเป็นเรื่องที่น่าเศร้ามาก ขอแนะนำให้คุณ:\n\n1. **เก็บหลักฐานทั้งหมด** - ภาพหน้าจอการสนทนา, หลักฐานการโอนเงิน\n2. **แจ้งธนาคาร** - โทรแจ้งธนาคารทันทีเพื่อระงับบัญชี\n3. **แจ้งความ** - สามารถแจ้งความได้ที่ระบบของเราโดยกดปุ่ม 'เล่าเรื่อง ให้ AI สร้างเอกสาร'\n\nต้องการให้ช่วยอะไรเพิ่มเติมไหมครับ?",
-  },
-  {
-    keywords: ["บัญชี", "เลขบัญชี", "ตรวจสอบ"],
-    response: "คุณสามารถตรวจสอบบัญชีมิจฉาชีพได้ที่หน้าแรกของเว็บไซต์ครับ มีระบบ 'ตรวจสอบบัญชี' ให้ใส่เลขบัญชีหรือเบอร์โทรเพื่อเช็คว่าอยู่ในรายการมิจฉาชีพหรือไม่",
   },
   {
     keywords: ["แจ้งความ", "แจ้ง", "ร้องเรียน"],
@@ -38,15 +144,43 @@ const responses: { keywords: string[]; response: string }[] = [
   },
 ];
 
-const defaultResponse = "ขอบคุณสำหรับคำถามครับ ผมจะพยายามช่วยเหลือให้ดีที่สุด\n\nหากต้องการแจ้งเหตุการถูกหลอกลวง สามารถใช้ระบบ 'เล่าเรื่อง ให้ AI สร้างเอกสาร' ได้เลยครับ หรือหากต้องการตรวจสอบบัญชีมิจฉาชีพ สามารถใช้ระบบตรวจสอบที่หน้าแรกได้ครับ\n\nมีอะไรอื่นให้ช่วยไหมครับ?";
+const defaultResponse = "ขอบคุณสำหรับคำถามครับ ผมจะพยายามช่วยเหลือให้ดีที่สุด\n\nหากต้องการแจ้งเหตุการถูกหลอกลวง สามารถใช้ระบบ 'เล่าเรื่อง ให้ AI สร้างเอกสาร' ได้เลยครับ หรือหากต้องการตรวจสอบบัญชีมิจฉาชีพ สามารถพิมพ์เลขบัญชีหรือเบอร์โทรมาได้เลยครับ\n\nมีอะไรอื่นให้ช่วยไหมครับ?";
+
+// Format currency
+function formatCurrency(amount: number | string | null): string {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : (amount || 0);
+  return new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    minimumFractionDigits: 0,
+  }).format(numAmount);
+}
 
 export async function getAIResponse(message: string): Promise<string> {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000));
-  
   const lowerMessage = message.toLowerCase();
+  const trimmedMessage = message.trim();
   
-  // Find matching response
+  // ลองค้นหาในฐานข้อมูลมิจฉาชีพก่อนเสมอ
+  // 1. ดึง query จาก pattern (เลขบัญชี, เบอร์โทร, หรือชื่อที่มี keyword นำหน้า)
+  const extractedQuery = extractSearchQuery(message);
+  if (extractedQuery) {
+    const result = await searchFraudAccountFromDB(extractedQuery);
+    if (result) {
+      return formatFraudResponse(result);
+    }
+    // ถ้า extract ได้แต่ไม่เจอ และมี keyword ค้นหา ให้แจ้งว่าไม่พบ
+    if (shouldSearchFraud(message)) {
+      return formatNotFoundResponse(extractedQuery);
+    }
+  }
+  
+  // 2. ลองค้นหาด้วย message ตรงๆ (กรณีพิมพ์ชื่อเฉยๆ เช่น "นายสมชาย รักเงิน")
+  const directResult = await searchFraudAccountFromDB(trimmedMessage);
+  if (directResult) {
+    return formatFraudResponse(directResult);
+  }
+  
+  // Find matching response จาก keywords
   for (const item of responses) {
     if (item.keywords.some((keyword) => lowerMessage.includes(keyword))) {
       return item.response;

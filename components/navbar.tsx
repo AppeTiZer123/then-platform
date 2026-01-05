@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, Shield, FileText, MessageCircle, Settings, Bot, LogIn, LogOut } from "lucide-react";
+import { Menu, Shield, FileText, Settings, Bot, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const publicLinks = [
   { href: "/", label: "หน้าแรก", icon: Shield },
-  { href: "/report", label: "แจ้งความ", icon: FileText },
-  { href: "/ai-chat", label: "AI ปรึกษา", icon: Bot },
-  { href: "/consult", label: "ติดต่อเจ้าหน้าที่", icon: MessageCircle },
+  { href: "/report", label: "สร้างเอกสาร", icon: FileText },
+  { href: "/ai-chat", label: "AI ให้คำปรึกษา", icon: Bot },
 ];
 
 const adminLink = { href: "/admin", label: "Admin", icon: Settings };

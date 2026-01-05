@@ -1,20 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
-  Search, 
+  Search,
   Plus,
   Edit,
   Trash2,
   AlertTriangle
 } from "lucide-react";
 import { mockFraudAccounts, formatCurrency } from "@/lib/mock-data";
-import { FraudAccount } from "@/lib/types";
+import { getAllFraudAccounts } from "@/lib/actions/fraud";
+
+// Type สำหรับ fraud account
+interface FraudAccount {
+  id: string;
+  accountNumber: string;
+  bankName: string;
+  accountName: string | null;
+  phoneNumber: string | null;
+  reportCount: number | null;
+  totalDamage: string | null;
+  status: string | null;
+  lastReportedAt: Date | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
 
 const getStatusBadge = (status: FraudAccount["status"]) => {
   switch (status) {
@@ -40,7 +55,8 @@ export default function FraudListPage() {
     totalDamage: 0,
     status: "pending" as FraudAccount["status"],
   });
-  const [fraudAccounts, setFraudAccounts] = useState(mockFraudAccounts);
+  const [fraudAccountsList, setFraudAccountsList] = useState<FraudAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState<FraudAccount | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -55,7 +71,24 @@ export default function FraudListPage() {
     status: "pending" as FraudAccount["status"],
   });
 
-  const filteredAccounts = fraudAccounts.filter((account) => {
+  // ดึงข้อมูลจาก database
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const data = await getAllFraudAccounts();
+        setFraudAccountsList(data);
+      } catch (error) {
+        console.error("Failed to fetch fraud accounts:", error);
+        // Fallback to mock data if database fails
+        setFraudAccountsList(mockFraudAccounts as unknown as FraudAccount[]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const filteredAccounts = fraudAccountsList.filter((account) => {
     return (
       account.accountNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       account.bankName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,24 +104,25 @@ export default function FraudListPage() {
       bankName: account.bankName,
       accountName: account.accountName || "",
       phoneNumber: account.phoneNumber || "",
-      reportCount: account.reportCount,
-      totalDamage: account.totalDamage,
-      status: account.status,
+      reportCount: account.reportCount || 0,
+      totalDamage: parseFloat(account.totalDamage || '0'),
+      status: (account.status as "confirmed" | "investigating" | "pending") || "pending",
     });
     setIsEditOpen(true);
   };
 
-  const handleEditSave = (e: any) => {
+  const handleEditSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAccount) return;
-    setFraudAccounts((prev) =>
+    // TODO: เพิ่ม Server Action สำหรับ update database
+    setFraudAccountsList((prev) =>
       prev.map((a) => (a.id === selectedAccount.id ? { ...a, ...{
         accountNumber: editForm.accountNumber,
         bankName: editForm.bankName,
         accountName: editForm.accountName,
         phoneNumber: editForm.phoneNumber,
         reportCount: Number(editForm.reportCount),
-        totalDamage: Number(editForm.totalDamage),
+        totalDamage: String(editForm.totalDamage),
         status: editForm.status,
       } } : a))
     );
@@ -103,7 +137,8 @@ export default function FraudListPage() {
 
   const handleConfirmDelete = () => {
     if (!selectedAccount) return;
-    setFraudAccounts((prev) => prev.filter((a) => a.id !== selectedAccount.id));
+    // TODO: เพิ่ม Server Action สำหรับ delete จาก database
+    setFraudAccountsList((prev) => prev.filter((a) => a.id !== selectedAccount.id));
     setIsDeleteOpen(false);
     setSelectedAccount(null);
   };
@@ -139,14 +174,16 @@ export default function FraudListPage() {
                     id: String(Date.now()),
                     accountNumber: addForm.accountNumber,
                     bankName: addForm.bankName,
-                    accountName: addForm.accountName || undefined,
-                    phoneNumber: addForm.phoneNumber || undefined,
+                    accountName: addForm.accountName || null,
+                    phoneNumber: addForm.phoneNumber || null,
                     reportCount: Number(addForm.reportCount) || 0,
-                    totalDamage: Number(addForm.totalDamage) || 0,
-                    lastReportedAt: new Date().toISOString(),
+                    totalDamage: String(addForm.totalDamage) || "0",
+                    lastReportedAt: new Date(),
                     status: addForm.status,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
                   };
-                  setFraudAccounts((prev) => [newAccount, ...prev]);
+                  setFraudAccountsList((prev) => [newAccount, ...prev]);
                   setIsAddDialogOpen(false);
                   setAddForm({ accountIdSelection: "", accountNumber: "", bankName: "", accountName: "", phoneNumber: "", reportCount: 0, totalDamage: 0, status: "pending" });
                 }}
@@ -307,15 +344,15 @@ export default function FraudListPage() {
                       <span className="text-sm">{account.accountName || "-"}</span>
                     </td>
                     <td className="py-4 px-4 hidden lg:table-cell">
-                      <Badge variant="secondary">{account.reportCount} ครั้ง</Badge>
+                      <Badge variant="secondary">{account.reportCount || 0} ครั้ง</Badge>
                     </td>
                     <td className="py-4 px-4 hidden lg:table-cell">
                       <span className="text-sm font-medium text-destructive">
-                        {formatCurrency(account.totalDamage)}
+                        {formatCurrency(parseFloat(account.totalDamage || '0'))}
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      {getStatusBadge(account.status)}
+                      {getStatusBadge(account.status as "confirmed" | "investigating" | "pending")}
                     </td>
                     <td className="py-4 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -347,7 +384,7 @@ export default function FraudListPage() {
             </p>
             <p className="text-sm text-muted-foreground">
               ความเสียหายรวม: <span className="font-medium text-destructive">
-                {formatCurrency(filteredAccounts.reduce((sum, a) => sum + a.totalDamage, 0))}
+                {formatCurrency(filteredAccounts.reduce((sum, a) => sum + parseFloat(a.totalDamage || '0'), 0))}
               </span>
             </p>
           </div>

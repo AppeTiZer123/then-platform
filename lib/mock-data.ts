@@ -149,10 +149,12 @@ export function searchFraudAccount(query: string): FraudAccount | null {
   return mockFraudAccounts.find((account) => {
     const normalizedAccountNumber = account.accountNumber.replace(/-/g, "").toLowerCase();
     const normalizedPhone = account.phoneNumber?.replace(/-/g, "").toLowerCase() || "";
+    const normalizedName = account.accountName?.toLowerCase() || "";
     
     return (
       normalizedAccountNumber.includes(normalizedQuery) ||
-      normalizedPhone.includes(normalizedQuery)
+      normalizedPhone.includes(normalizedQuery) ||
+      normalizedName.includes(normalizedQuery)
     );
   }) || null;
 }

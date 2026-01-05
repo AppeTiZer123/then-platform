@@ -1,6 +1,5 @@
 import { Navbar } from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
-import { FraudCheck } from "@/components/fraud-check";
 import { Footer } from "@/components/footer";
 import { FileText, MessageCircle, ShieldCheck, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,22 +8,22 @@ const features = [
   {
     icon: FileText,
     title: "เล่าเรื่อง สร้างเอกสาร",
-    description: "แค่เล่าเหตุการณ์ที่เกิดขึ้น AI ช่วยวิเคราะห์และสร้างเอกสารใบแจ้งความให้อัตโนมัติ",
+    description: "แค่เล่าเหตุการณ์ที่เกิดขึ้น AI ช่วยวิเคราะห์และสร้างเอกสาร PDF พร้อมยื่นตำรวจ",
   },
   {
     icon: ShieldCheck,
     title: "ตรวจสอบมิจฉาชีพ",
-    description: "ค้นหาเลขบัญชีหรือเบอร์โทรศัพท์ เพื่อตรวจสอบประวัติการหลอกลวง",
+    description: "พิมพ์เลขบัญชีหรือเบอร์โทรในแชท AI เพื่อตรวจสอบประวัติการหลอกลวง",
   },
   {
     icon: MessageCircle,
-    title: "ปรึกษาเจ้าหน้าที่",
-    description: "สอบถามข้อมูลและรับคำแนะนำจากเจ้าหน้าที่ผู้เชี่ยวชาญ",
+    title: "AI ให้คำปรึกษา",
+    description: "ถามตอบกับ AI เกี่ยวกับการหลอกลวงออนไลน์ได้ตลอด 24 ชั่วโมง",
   },
   {
     icon: Clock,
-    title: "ติดตามสถานะ",
-    description: "ตรวจสอบความคืบหน้าของคดีได้ตลอดเวลาผ่านระบบออนไลน์",
+    title: "ดาวน์โหลด PDF",
+    description: "รับเอกสาร PDF พร้อมยื่นที่สถานีตำรวจได้ทันที",
   },
 ];
 
@@ -44,7 +43,7 @@ export default function HomePage() {
               บริการของเรา
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              ระบบครบวงจรสำหรับการรับมือกับปัญหาอาชญากรรมทางออนไลน์
+              เครื่องมือช่วยเตรียมเอกสารแจ้งความด้วย AI
             </p>
           </div>
           
@@ -68,11 +67,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      
-      {/* Fraud Check Section */}
-      <div id="fraud-check">
-        <FraudCheck />
-      </div>
+
       
       {/* CTA Section */}
       <section className="py-16 md:py-24 gradient-primary text-white">
