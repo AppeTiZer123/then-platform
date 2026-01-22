@@ -169,10 +169,13 @@ export function formatCurrency(amount: number): string {
 }
 
 // Format date
-export function formatDate(dateString: string): string {
+export function formatDate(dateInput?: string | Date | null): string {
+  if (!dateInput) return "-";
+  const date = typeof dateInput === "string" ? new Date(dateInput) : new Date(dateInput);
+  if (isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("th-TH", {
     year: "numeric",
     month: "long",
     day: "numeric",
-  }).format(new Date(dateString));
+  }).format(date);
 }

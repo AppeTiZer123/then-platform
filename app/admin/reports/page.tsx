@@ -85,13 +85,41 @@ export default function AdminReportsPage() {
     };
   }, [openMenuId]);
 
-  const filteredReports = mockReports.filter((report) => {
-    const matchesSearch = 
-      report.caseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reporterName.toLowerCase().includes(searchQuery.toLowerCase());
+  const [reports, setReports] = useState<typeof mockReports>(mockReports);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchReports() {
+      try {
+        const res = await fetch('/api/admin/reports');
+        const json = await res.json();
+        if (json?.ok && Array.isArray(json.data)) {
+          setReports(json.data as any);
+        } else {
+          setApiError(json?.message || json?.error || 'Failed to load from API');
+          setReports(mockReports);
+        }
+      } catch (err: any) {
+        console.error('Error fetching reports API:', err);
+        setApiError(err?.message || String(err));
+        setReports(mockReports);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchReports();
+  }, []);
+
+  const filteredReports = reports.filter((report) => {
+    const matchesSearch =
+      report.caseNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      report.reporterName?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || report.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const selectedReport = openReportId ? (reports || []).find((r: any) => r.id === openReportId) || null : null;
 
   return (
     <div className="space-y-6">
@@ -133,6 +161,9 @@ export default function AdminReportsPage() {
       </Card>
 
       {/* Reports Table */}
+      {apiError && (
+        <div className="p-3 rounded-md bg-red-50 text-red-700 border border-red-100">มีปัญหาในการดึงข้อมูลจากฐานข้อมูล: {apiError}</div>
+      )}
       <Card>
         <CardContent className="pt-6">
           <div className="overflow-x-auto">
@@ -280,36 +311,94 @@ export default function AdminReportsPage() {
         <DialogContent>
           <DialogTitle>รายละเอียดคดี</DialogTitle>
           <DialogDescription className="mb-4">ข้อมูลตัวอย่างสำหรับรายการแจ้งความ</DialogDescription>
-          {openReportId && (
+          {selectedReport ? (
             (() => {
-              const rpt = mockReports.find((r) => r.id === openReportId)!;
+              const rpt = selectedReport as any;
               return (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">หมายเลขคดี</p>
-                    <p className="font-medium">{rpt.caseNumber}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Left column */}
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">หมายเลขคดี</p>
+                      <p className="text-lg font-semibold">{rpt.caseNumber ?? rpt.case_number ?? rpt.case}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">ผู้แจ้ง</p>
+                      <p className="font-medium">{rpt.reporterName ?? rpt.reporter_name ?? 'ผู้เสียหาย'}</p>
+                      <p className="text-xs text-muted-foreground">{rpt.reporterPhone ?? rpt.reporter_phone ?? '-'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">ชื่อ - นามสกุล</p>
+                      <p className="font-medium">{rpt.reporterName ?? rpt.reporter_name ?? '-'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">เลขบัตรประชาชน</p>
+                      <p className="font-medium">{rpt.idCard ?? rpt.id_card ?? '-'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">ยอดโอน</p>
+                      <p className="font-medium text-destructive">{formatCurrency(Number(rpt.transferAmount ?? rpt.damageAmount ?? rpt.damage_amount ?? 0))}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">สินค้าที่สั่งซื้อ</p>
+                      <p className="font-medium">{rpt.productOrdered ?? rpt.product ?? rpt.item ?? '-'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">เลขบัญชี</p>
+                      <p className="font-medium">{rpt.accountNumber ?? rpt.account_number ?? rpt.suspect_account ?? '-'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">ผู้แจ้ง</p>
-                    <p className="font-medium">{rpt.reporterName} — {rpt.reporterPhone}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">วันเกิดเหตุ</p>
-                    <p className="font-medium">{formatDate(rpt.incidentDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">ความเสียหายโดยประมาณ</p>
-                    <p className="font-medium text-destructive">{formatCurrency(rpt.damageAmount)}</p>
-                  </div>
-                  <div className="pt-4 flex justify-end gap-2">
-                    <DialogClose asChild>
-                      <Button variant="outline">ปิด</Button>
-                    </DialogClose>
-                    <Button onClick={() => { alert('ตัวอย่าง: ส่งข้อความถึงผู้แจ้ง'); }}>ส่งข้อความ</Button>
+
+                  {/* Right column */}
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">เพจขายของ</p>
+                      <p className="font-medium">{rpt.sellerPage ?? rpt.seller_page ?? '-'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">วันโอนเงิน</p>
+                      <p className="font-medium">{formatDate(rpt.transferDate ?? rpt.transfer_date ?? rpt.incidentDate ?? rpt.incident_date)}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">วันที่ลงประกาศ</p>
+                      <p className="font-medium">{formatDate(rpt.postDate ?? rpt.post_date)}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">รายละเอียดเพิ่มเติม</p>
+                      <p className="text-sm">{rpt.moreDetails ?? rpt.incidentDetails ?? rpt.incident_details ?? '-'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">วันเกิดเหตุ</p>
+                      <p className="font-medium">{formatDate(rpt.incidentDate ?? rpt.incident_date)}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">ความเสียหายโดยประมาณ</p>
+                      <p className="text-lg font-semibold text-destructive">{formatCurrency(Number(rpt.damageAmount ?? rpt.damage_amount ?? 0))}</p>
+                    </div>
+
+                    <div className="pt-4 flex justify-end gap-2">
+                      <DialogClose asChild>
+                        <Button variant="outline">ปิด</Button>
+                      </DialogClose>
+                      <Button onClick={() => { alert('ตัวอย่าง: ส่งข้อความถึงผู้แจ้ง'); }}>ส่งข้อความ</Button>
+                    </div>
                   </div>
                 </div>
               );
             })()
+          ) : (
+            <div>ไม่พบข้อมูลคดี</div>
           )}
         </DialogContent>
       </Dialog>
