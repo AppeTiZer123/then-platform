@@ -11,7 +11,7 @@ export default auth((req) => {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", nextUrl));
     }
-    
+
     // Check role - เฉพาะ admin เท่านั้น
     if (user?.role !== "admin") {
       return NextResponse.redirect(new URL("/unauthorized", nextUrl));
@@ -19,14 +19,23 @@ export default auth((req) => {
   }
 
   // Report page protection (must be logged in)
-  if (nextUrl.pathname.startsWith("/report") && !nextUrl.pathname.includes("/track")) {
+  // Exception: /report/manual สำหรับ testing PDF generation
+  if (
+    nextUrl.pathname.startsWith("/report") &&
+    !nextUrl.pathname.includes("/track") &&
+    !nextUrl.pathname.includes("/manual")
+  ) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", nextUrl));
     }
   }
 
   // Complete profile redirect for new users
-  if (isLoggedIn && !nextUrl.pathname.startsWith("/complete-profile") && !nextUrl.pathname.startsWith("/api")) {
+  if (
+    isLoggedIn &&
+    !nextUrl.pathname.startsWith("/complete-profile") &&
+    !nextUrl.pathname.startsWith("/api")
+  ) {
     // Check if user needs to complete profile
     if (!user?.name && nextUrl.pathname !== "/login") {
       return NextResponse.redirect(new URL("/complete-profile", nextUrl));

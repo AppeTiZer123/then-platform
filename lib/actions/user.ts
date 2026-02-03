@@ -1,57 +1,26 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { userRepo } from "@/lib/db/repositories";
 
-function normalizePhone(phone: string): string {
-  return phone.replace(/[-\s()]/g, "").trim();
-}
-
+/**
+ * ค้นหา user จากเบอร์โทร
+ */
 export async function findUserByPhone(phone: string) {
-  const normalizedPhone = normalizePhone(phone);
-
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.phone, normalizedPhone))
-    .limit(1);
-
-  return result[0] || null;
+  return userRepo.findByPhone(phone);
 }
 
 /**
  * ค้นหา user จาก id
  */
 export async function findUserById(id: string) {
-  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-
-  return result[0] || null;
+  return userRepo.findById(id);
 }
 
 /**
  * สร้าง user ใหม่ หรือ return ที่มีอยู่แล้ว
  */
 export async function findOrCreateUser(phone: string) {
-  const normalizedPhone = normalizePhone(phone);
-
-  // ตรวจสอบว่ามี user อยู่แล้วหรือไม่
-  const existingUser = await findUserByPhone(normalizedPhone);
-
-  if (existingUser) {
-    return existingUser;
-  }
-
-  // สร้าง user ใหม่ (เก็บเบอร์แบบ normalized)
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      phone: normalizedPhone,
-      isVerified: true,
-    })
-    .returning();
-
-  return newUser;
+  return userRepo.findOrCreate(phone);
 }
 
 /**
@@ -64,18 +33,9 @@ export async function updateUserProfile(
     email?: string;
     idCardEncrypted?: string;
     address?: string;
-  }
+  },
 ) {
-  const [updated] = await db
-    .update(users)
-    .set({
-      ...data,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, id))
-    .returning();
-
-  return updated;
+  return userRepo.update(id, data);
 }
 
 /**
@@ -87,7 +47,7 @@ export async function updateUser(
     name?: string;
     email?: string;
     address?: string;
-  }
+  },
 ) {
   return updateUserProfile(id, data);
 }

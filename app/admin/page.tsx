@@ -1,15 +1,25 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  FileText, 
-  AlertTriangle, 
+import {
+  FileText,
+  AlertTriangle,
   TrendingUp,
   ArrowUp,
   ArrowDown,
   Clock,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
-import { mockDashboardStats, mockReports, formatCurrency } from "@/lib/mock-data";
+import {
+  mockDashboardStats,
+  mockReports,
+  formatCurrency,
+} from "@/lib/mock-data";
 import Link from "next/link";
 
 const stats = [
@@ -50,11 +60,32 @@ const stats = [
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "pending":
-      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">รอดำเนินการ</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-yellow-50 text-yellow-700 border-yellow-200"
+        >
+          รอดำเนินการ
+        </Badge>
+      );
     case "in_progress":
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">กำลังดำเนินการ</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-blue-50 text-blue-700 border-blue-200"
+        >
+          กำลังดำเนินการ
+        </Badge>
+      );
     case "completed":
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">เสร็จสิ้น</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-green-50 text-green-700 border-green-200"
+        >
+          เสร็จสิ้น
+        </Badge>
+      );
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
@@ -68,16 +99,29 @@ export default function AdminDashboard() {
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           // decide link target
-          const href = stat.title === "บัญชีมิจฉาชีพ" ? "/admin/fraud-list" : stat.title === "คดีทั้งหมด" ? "/admin/reports" : `/admin/reports?status=${stat.title === "รอดำเนินการ" ? "pending" : stat.title === "กำลังดำเนินการ" ? "in_progress" : ""}`;
+          const href =
+            stat.title === "บัญชีมิจฉาชีพ"
+              ? "/admin/fraud-list"
+              : stat.title === "คดีทั้งหมด"
+                ? "/admin/reports"
+                : `/admin/reports?status=${stat.title === "แจ้งเบาะแส" ? "tip" : stat.title === "ออกเอกสารแล้ว" ? "completed" : ""}`;
 
           return (
-            <Link key={index} href={href} className="block transform transition hover:-translate-y-0.5 hover:shadow-md">
+            <Link
+              key={index}
+              href={href}
+              className="block transform transition hover:-translate-y-0.5 hover:shadow-md"
+            >
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">{stat.title}</p>
-                      <p className="text-2xl font-bold mt-1">{stat.value.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {stat.title}
+                      </p>
+                      <p className="text-2xl font-bold mt-1">
+                        {stat.value.toLocaleString()}
+                      </p>
                       <div className="flex items-center gap-1 mt-2">
                         {stat.changeType === "positive" && (
                           <ArrowUp className="h-3 w-3 text-green-500" />
@@ -85,10 +129,15 @@ export default function AdminDashboard() {
                         {stat.changeType === "negative" && (
                           <ArrowDown className="h-3 w-3 text-red-500" />
                         )}
-                        <span className={`text-xs ${
-                          stat.changeType === "positive" ? "text-green-500" :
-                          stat.changeType === "negative" ? "text-red-500" : "text-muted-foreground"
-                        }`}>
+                        <span
+                          className={`text-xs ${
+                            stat.changeType === "positive"
+                              ? "text-green-500"
+                              : stat.changeType === "negative"
+                                ? "text-red-500"
+                                : "text-muted-foreground"
+                          }`}
+                        >
                           {stat.change} จากเดือนก่อน
                         </span>
                       </div>
@@ -115,18 +164,26 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-3xl font-bold text-primary">{mockDashboardStats.todayReports}</p>
+                <p className="text-3xl font-bold text-primary">
+                  {mockDashboardStats.todayReports}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">คดีวันนี้</p>
               </div>
               <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-3xl font-bold text-primary">{mockDashboardStats.weeklyReports}</p>
-                <p className="text-sm text-muted-foreground mt-1">คดีสัปดาห์นี้</p>
+                <p className="text-3xl font-bold text-primary">
+                  {mockDashboardStats.weeklyReports}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  คดีสัปดาห์นี้
+                </p>
               </div>
               <div className="col-span-2 text-center p-4 bg-destructive/10 rounded-lg">
                 <p className="text-2xl font-bold text-destructive">
                   {formatCurrency(mockDashboardStats.totalDamageAmount)}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">ความเสียหายรวม</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  ความเสียหายรวม
+                </p>
               </div>
             </div>
           </CardContent>
@@ -139,19 +196,23 @@ export default function AdminDashboard() {
             <CardDescription>รายการที่ต้องดำเนินการ</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Link href="/admin/reports?status=pending" className="block">
+            <Link href="/admin/reports?status=tip" className="block">
               <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-yellow-600" />
                   <div>
-                    <p className="font-medium text-sm">คดีรอตรวจสอบ</p>
-                    <p className="text-xs text-muted-foreground">ต้องมอบหมายเจ้าหน้าที่</p>
+                    <p className="font-medium text-sm">เบาะแสใหม่</p>
+                    <p className="text-xs text-muted-foreground">
+                      รายงานจากผู้ใช้
+                    </p>
                   </div>
                 </div>
-                <Badge variant="secondary">{mockDashboardStats.pendingReports}</Badge>
+                <Badge variant="secondary">
+                  {mockDashboardStats.pendingReports}
+                </Badge>
               </div>
             </Link>
-            
+
             <Link href="/admin/reports?status=in_progress" className="block">
               <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -161,10 +222,12 @@ export default function AdminDashboard() {
                     <p className="text-xs text-muted-foreground">รอติดตามผล</p>
                   </div>
                 </div>
-                <Badge variant="secondary">{mockDashboardStats.inProgressReports}</Badge>
+                <Badge variant="secondary">
+                  {mockDashboardStats.inProgressReports}
+                </Badge>
               </div>
             </Link>
-            
+
             <Link href="/admin/reports?status=completed" className="block">
               <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -174,7 +237,9 @@ export default function AdminDashboard() {
                     <p className="text-xs text-muted-foreground">เดือนนี้</p>
                   </div>
                 </div>
-                <Badge variant="secondary">{mockDashboardStats.completedReports}</Badge>
+                <Badge variant="secondary">
+                  {mockDashboardStats.completedReports}
+                </Badge>
               </div>
             </Link>
           </CardContent>
@@ -192,22 +257,39 @@ export default function AdminDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">หมายเลข</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ผู้แจ้ง</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">ความเสียหาย</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">สถานะ</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    หมายเลข
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    ผู้แจ้ง
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground hidden sm:table-cell">
+                    ความเสียหาย
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                    สถานะ
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {mockReports.map((report) => (
-                  <tr key={report.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                  <tr
+                    key={report.id}
+                    className="border-b border-border last:border-0 hover:bg-muted/50"
+                  >
                     <td className="py-3 px-4">
-                      <span className="font-medium text-sm">{report.caseNumber}</span>
+                      <span className="font-medium text-sm">
+                        {report.caseNumber}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <div>
-                        <p className="text-sm font-medium">{report.reporterName}</p>
-                        <p className="text-xs text-muted-foreground">{report.reporterPhone}</p>
+                        <p className="text-sm font-medium">
+                          {report.reporterName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {report.reporterPhone}
+                        </p>
                       </div>
                     </td>
                     <td className="py-3 px-4 hidden sm:table-cell">

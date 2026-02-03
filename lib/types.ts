@@ -9,7 +9,7 @@ export interface FraudAccount {
   reportCount: number;
   totalDamage: number;
   lastReportedAt: string;
-  status: "confirmed" | "pending" | "investigating";
+  status: "confirmed" | "pending" | "investigating"; // pending = รอตรวจสอบ, investigating = กำลังตรวจสอบ, confirmed = ยืนยันแล้ว
 }
 
 export interface Report {
@@ -25,7 +25,7 @@ export interface Report {
   suspectPhone?: string;
   suspectSocialMedia?: string;
   evidenceImages: string[];
-  status: "pending" | "in_progress" | "completed" | "rejected";
+  status: "tip" | "pending" | "in_progress" | "completed"; // tip = แจ้งเบาะแส, pending = รอดำเนินการ, in_progress = กำลังดำเนินการ, completed = ออกเอกสารแล้ว
   createdAt: string;
   updatedAt: string;
   assignedOfficer?: string;
@@ -68,7 +68,7 @@ export interface ReportFormData {
   phone: string;
   email?: string;
   address: string;
-  
+
   // Step 2: Case Details
   incidentDate: string;
   incidentTime?: string;
@@ -78,7 +78,7 @@ export interface ReportFormData {
   suspectBank?: string;
   suspectPhone?: string;
   suspectSocialMedia?: string;
-  
+
   // Step 3: Evidence
   evidenceImages: File[];
   additionalInfo?: string;

@@ -5,7 +5,13 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { mockReports, formatDate, formatCurrency } from "@/lib/mock-data";
@@ -13,11 +19,32 @@ import { mockReports, formatDate, formatCurrency } from "@/lib/mock-data";
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "pending":
-      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">รอดำเนินการ</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-yellow-50 text-yellow-700 border-yellow-200"
+        >
+          รอดำเนินการ
+        </Badge>
+      );
     case "in_progress":
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">กำลังดำเนินการ</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-blue-50 text-blue-700 border-blue-200"
+        >
+          กำลังดำเนินการ
+        </Badge>
+      );
     case "completed":
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">เสร็จสิ้น</Badge>;
+      return (
+        <Badge
+          variant="outline"
+          className="bg-green-50 text-green-700 border-green-200"
+        >
+          เสร็จสิ้น
+        </Badge>
+      );
     case "rejected":
       return <Badge variant="destructive">ยกเลิก</Badge>;
     default:
@@ -28,7 +55,9 @@ const getStatusBadge = (status: string) => {
 export default function TrackReportPage() {
   const [caseNumber, setCaseNumber] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [result, setResult] = useState<typeof mockReports[0] | null | undefined>(undefined);
+  const [result, setResult] = useState<
+    (typeof mockReports)[0] | null | undefined
+  >(undefined);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +65,9 @@ export default function TrackReportPage() {
 
     setIsSearching(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
-    
-    const found = mockReports.find((r) => 
-      r.caseNumber.toLowerCase() === caseNumber.toLowerCase()
+
+    const found = mockReports.find(
+      (r) => r.caseNumber.toLowerCase() === caseNumber.toLowerCase(),
     );
     setResult(found || null);
     setIsSearching(false);
@@ -47,7 +76,7 @@ export default function TrackReportPage() {
   return (
     <main className="min-h-screen flex flex-col bg-muted/30">
       <Navbar />
-      
+
       <div className="flex-1 container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
@@ -74,15 +103,41 @@ export default function TrackReportPage() {
                     className="pl-10 h-12"
                   />
                 </div>
-                <Button type="submit" size="lg" disabled={isSearching || !caseNumber.trim()}>
-                  {isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : "ค้นหา"}
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isSearching || !caseNumber.trim()}
+                >
+                  {isSearching ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "ค้นหา"
+                  )}
                 </Button>
               </form>
-              
+
               <p className="text-xs text-muted-foreground mt-3">
-                ลองค้นหา: <button onClick={() => setCaseNumber("RPT-2024-0001")} className="text-primary hover:underline">RPT-2024-0001</button>, 
-                <button onClick={() => setCaseNumber("RPT-2024-0002")} className="text-primary hover:underline ml-1">RPT-2024-0002</button>, หรือ 
-                <button onClick={() => setCaseNumber("RPT-2024-0003")} className="text-primary hover:underline ml-1">RPT-2024-0003</button>
+                ลองค้นหา:{" "}
+                <button
+                  onClick={() => setCaseNumber("RPT-2024-0001")}
+                  className="text-primary hover:underline"
+                >
+                  RPT-2024-0001
+                </button>
+                ,
+                <button
+                  onClick={() => setCaseNumber("RPT-2024-0002")}
+                  className="text-primary hover:underline ml-1"
+                >
+                  RPT-2024-0002
+                </button>
+                , หรือ
+                <button
+                  onClick={() => setCaseNumber("RPT-2024-0003")}
+                  className="text-primary hover:underline ml-1"
+                >
+                  RPT-2024-0003
+                </button>
               </p>
             </CardContent>
           </Card>
@@ -92,7 +147,9 @@ export default function TrackReportPage() {
             <Card>
               <CardContent className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-3 text-muted-foreground">กำลังค้นหา...</span>
+                <span className="ml-3 text-muted-foreground">
+                  กำลังค้นหา...
+                </span>
               </CardContent>
             </Card>
           )}
@@ -106,7 +163,8 @@ export default function TrackReportPage() {
                     ไม่พบข้อมูล
                   </h3>
                   <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                    ไม่พบคดีหมายเลข &quot;{caseNumber}&quot; กรุณาตรวจสอบหมายเลขอ้างอิงอีกครั้ง
+                    ไม่พบคดีหมายเลข &quot;{caseNumber}&quot;
+                    กรุณาตรวจสอบหมายเลขอ้างอิงอีกครั้ง
                   </p>
                 </div>
               </CardContent>
@@ -118,8 +176,12 @@ export default function TrackReportPage() {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-xl">{result.caseNumber}</CardTitle>
-                    <CardDescription>แจ้งเมื่อ {formatDate(result.createdAt)}</CardDescription>
+                    <CardTitle className="text-xl">
+                      {result.caseNumber}
+                    </CardTitle>
+                    <CardDescription>
+                      แจ้งเมื่อ {formatDate(result.createdAt)}
+                    </CardDescription>
                   </div>
                   {getStatusBadge(result.status)}
                 </div>
@@ -133,39 +195,49 @@ export default function TrackReportPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">รับแจ้งความ</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(result.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(result.createdAt)}
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      result.status !== "pending" 
-                        ? "bg-green-100 dark:bg-green-900/30" 
-                        : "bg-muted"
-                    }`}>
-                      {result.status !== "pending" 
-                        ? <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        : <Clock className="h-4 w-4 text-muted-foreground" />
-                      }
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        result.status === "completed"
+                          ? "bg-green-100 dark:bg-green-900/30"
+                          : "bg-muted"
+                      }`}
+                    >
+                      {result.status === "completed" ? (
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">มอบหมายเจ้าหน้าที่</p>
                       {result.assignedOfficer && (
-                        <p className="text-xs text-muted-foreground">{result.assignedOfficer}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {result.assignedOfficer}
+                        </p>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      result.status === "completed" 
-                        ? "bg-green-100 dark:bg-green-900/30" 
-                        : "bg-muted"
-                    }`}>
-                      {result.status === "completed"
-                        ? <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        : <Clock className="h-4 w-4 text-muted-foreground" />
-                      }
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        result.status === "completed"
+                          ? "bg-green-100 dark:bg-green-900/30"
+                          : "bg-muted"
+                      }`}
+                    >
+                      {result.status === "completed" ? (
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">ดำเนินการเสร็จสิ้น</p>
@@ -178,12 +250,20 @@ export default function TrackReportPage() {
                   <h4 className="font-semibold">รายละเอียดคดี</h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">วันเกิดเหตุ:</span>
-                      <p className="font-medium">{formatDate(result.incidentDate)}</p>
+                      <span className="text-muted-foreground">
+                        วันเกิดเหตุ:
+                      </span>
+                      <p className="font-medium">
+                        {formatDate(result.incidentDate)}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">ความเสียหาย:</span>
-                      <p className="font-medium text-destructive">{formatCurrency(result.damageAmount)}</p>
+                      <span className="text-muted-foreground">
+                        ความเสียหาย:
+                      </span>
+                      <p className="font-medium text-destructive">
+                        {formatCurrency(result.damageAmount)}
+                      </p>
                     </div>
                   </div>
                   <div className="text-sm">
@@ -196,7 +276,7 @@ export default function TrackReportPage() {
           )}
         </div>
       </div>
-      
+
       <Footer />
     </main>
   );
