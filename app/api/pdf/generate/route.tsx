@@ -4,21 +4,29 @@ import { IncidentReportDocument } from "@/lib/pdf/incident-report-template";
 import type { IncidentReportData } from "@/types/pdf-report";
 
 export async function POST(request: NextRequest) {
+  let data: IncidentReportData;
   try {
-    const data: IncidentReportData = await request.json();
-
-    // Validate required fields
-    if (!data.fullname || !data.id_card || !data.incident_details) {
-      return NextResponse.json(
-        { error: "Missing required fields: fullname, id_card, incident_details" },
-        { status: 400 }
-      );
-    }
-
-    // Generate PDF buffer
-    const pdfBuffer = await renderToBuffer(
-      <IncidentReportDocument data={data} />
+    data = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 }
     );
+  }
+
+  // Validate required fields
+  if (!data.fullname || !data.incident_details) {
+    return NextResponse.json(
+      { error: "Missing required fields: fullname, incident_details" },
+      { status: 400 }
+    );
+  }
+
+  // Generate PDF buffer - Construct JSX outside try/catch
+  const document = <IncidentReportDocument data={data} />;
+
+  try {
+    const pdfBuffer = await renderToBuffer(document);
 
     // Create filename with date
     const filename = `ใบแจ้งเหตุ_${data.fullname}_${data.report_date || new Date().toLocaleDateString("th-TH")}.pdf`;
@@ -43,11 +51,11 @@ export async function POST(request: NextRequest) {
 // GET endpoint สำหรับ test ด้วย sample data
 export async function GET() {
   const { sampleIncidentReportData } = await import("@/types/pdf-report");
+  
+  const document = <IncidentReportDocument data={sampleIncidentReportData} />;
 
   try {
-    const pdfBuffer = await renderToBuffer(
-      <IncidentReportDocument data={sampleIncidentReportData} />
-    );
+    const pdfBuffer = await renderToBuffer(document);
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,

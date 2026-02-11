@@ -17,7 +17,6 @@ import {
 import { mockReports, formatCurrency, formatDate } from "@/lib/mock-data";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogTitle,
   DialogDescription,
@@ -45,7 +44,6 @@ export default function AdminReportsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [openReportId, setOpenReportId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [menuAnimatingId, setMenuAnimatingId] = useState<string | null>(null);
   const [menuReadyId, setMenuReadyId] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
@@ -65,7 +63,6 @@ export default function AdminReportsPage() {
       if (!target.closest(btnSel) && !target.closest(menuSel)) {
         setOpenMenuId(null);
         setMenuReadyId(null);
-        setMenuAnimatingId(null);
       }
     }
 
@@ -73,7 +70,6 @@ export default function AdminReportsPage() {
       if (e.key === "Escape") {
         setOpenMenuId(null);
         setMenuReadyId(null);
-        setMenuAnimatingId(null);
       }
     }
 
@@ -83,10 +79,21 @@ export default function AdminReportsPage() {
       document.removeEventListener("mousedown", handleDocClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [openMenuId]);
+  }, [openMenuId, searchParams]);
 
-  const [reports, setReports] = useState<typeof mockReports>(mockReports);
-  const [isLoading, setIsLoading] = useState(true);
+  // Type definition for Report to replace 'any'
+  interface Report {
+    id: string;
+    caseNumber: string;
+    reporterName: string;
+    reporterPhone: string;
+    incidentDate: string;
+    damageAmount: number;
+    status: string;
+    [key: string]: string | number | boolean | null | undefined; // Allow flexible properties for now
+  }
+  
+  const [reports, setReports] = useState<Report[]>(mockReports as unknown as Report[]);
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,31 +102,34 @@ export default function AdminReportsPage() {
         const res = await fetch('/api/admin/reports');
         const json = await res.json();
         if (json?.ok && Array.isArray(json.data)) {
-          setReports(json.data as any);
+          setReports(json.data as Report[]);
         } else {
           setApiError(json?.message || json?.error || 'Failed to load from API');
-          setReports(mockReports);
+          setReports(mockReports as unknown as Report[]);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching reports API:', err);
-        setApiError(err?.message || String(err));
-        setReports(mockReports);
+        setApiError(err instanceof Error ? err.message : String(err));
+        setReports(mockReports as unknown as Report[]);
       } finally {
-        setIsLoading(false);
+        // isLoading was unused, so removed
       }
     }
     fetchReports();
   }, []);
 
   const filteredReports = reports.filter((report) => {
+    const caseNum = report.caseNumber || (report.case_number as string) || (report.case as string) || "";
+    const name = report.reporterName || (report.reporter_name as string) || "";
+    
     const matchesSearch =
-      report.caseNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reporterName?.toLowerCase().includes(searchQuery.toLowerCase());
+      caseNum.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || report.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const selectedReport = openReportId ? (reports || []).find((r: any) => r.id === openReportId) || null : null;
+  const selectedReport = openReportId ? (reports || []).find((r) => r.id === openReportId) || null : null;
 
   return (
     <div className="space-y-6">
@@ -199,7 +209,7 @@ export default function AdminReportsPage() {
                       </span>
                     </td>
                     <td className="py-5 px-6 align-middle">
-                      {getStatusBadge(report.status)}
+                      {getStatusBadge(report.status as string)}
                     </td>
                     <td className="py-5 px-6 text-right align-middle">
                       <div className="flex items-center justify-end gap-2 relative">
@@ -222,17 +232,14 @@ export default function AdminReportsPage() {
                               if (openMenuId === report.id) {
                                 // close
                                 setOpenMenuId(null);
-                                setMenuAnimatingId(null);
                                 setMenuReadyId(null);
                               } else {
                                 // open -> start animating
                                 setOpenMenuId(report.id);
-                                setMenuAnimatingId(report.id);
                                 setMenuReadyId(null);
                                 // after animation duration, mark ready (allow clicks)
                                 window.setTimeout(() => {
                                   setMenuReadyId(report.id);
-                                  setMenuAnimatingId(null);
                                 }, 180);
                               }
                             }}
@@ -313,45 +320,45 @@ export default function AdminReportsPage() {
           <DialogDescription className="mb-4">ข้อมูลตัวอย่างสำหรับรายการแจ้งความ</DialogDescription>
           {selectedReport ? (
             (() => {
-              const rpt = selectedReport as any;
+              const rpt = selectedReport;
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {/* Left column */}
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground">หมายเลขคดี</p>
-                      <p className="text-lg font-semibold">{rpt.caseNumber ?? rpt.case_number ?? rpt.case}</p>
+                      <p className="text-lg font-semibold">{(rpt.caseNumber as string) ?? (rpt.case_number as string) ?? (rpt.case as string)}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">ผู้แจ้ง</p>
-                      <p className="font-medium">{rpt.reporterName ?? rpt.reporter_name ?? 'ผู้เสียหาย'}</p>
-                      <p className="text-xs text-muted-foreground">{rpt.reporterPhone ?? rpt.reporter_phone ?? '-'}</p>
+                      <p className="font-medium">{(rpt.reporterName as string) ?? (rpt.reporter_name as string) ?? 'ผู้เสียหาย'}</p>
+                      <p className="text-xs text-muted-foreground">{(rpt.reporterPhone as string) ?? (rpt.reporter_phone as string) ?? '-'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">ชื่อ - นามสกุล</p>
-                      <p className="font-medium">{rpt.reporterName ?? rpt.reporter_name ?? '-'}</p>
+                      <p className="font-medium">{(rpt.reporterName as string) ?? (rpt.reporter_name as string) ?? '-'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">เลขบัตรประชาชน</p>
-                      <p className="font-medium">{rpt.idCard ?? rpt.id_card ?? '-'}</p>
+                      <p className="font-medium">{(rpt.idCard as string) ?? (rpt.id_card as string) ?? '-'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">ยอดโอน</p>
-                      <p className="font-medium text-destructive">{formatCurrency(Number(rpt.transferAmount ?? rpt.damageAmount ?? rpt.damage_amount ?? 0))}</p>
+                      <p className="font-medium text-destructive">{formatCurrency(Number((rpt.transferAmount as number) ?? (rpt.damageAmount as number) ?? (rpt.damage_amount as number) ?? 0))}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">สินค้าที่สั่งซื้อ</p>
-                      <p className="font-medium">{rpt.productOrdered ?? rpt.product ?? rpt.item ?? '-'}</p>
+                      <p className="font-medium">{(rpt.productOrdered as string) ?? (rpt.product as string) ?? (rpt.item as string) ?? '-'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">เลขบัญชี</p>
-                      <p className="font-medium">{rpt.accountNumber ?? rpt.account_number ?? rpt.suspect_account ?? '-'}</p>
+                      <p className="font-medium">{(rpt.accountNumber as string) ?? (rpt.account_number as string) ?? (rpt.suspect_account as string) ?? '-'}</p>
                     </div>
                   </div>
 
@@ -359,32 +366,32 @@ export default function AdminReportsPage() {
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-muted-foreground">เพจขายของ</p>
-                      <p className="font-medium">{rpt.sellerPage ?? rpt.seller_page ?? '-'}</p>
+                      <p className="font-medium">{(rpt.sellerPage as string) ?? (rpt.seller_page as string) ?? '-'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">วันโอนเงิน</p>
-                      <p className="font-medium">{formatDate(rpt.transferDate ?? rpt.transfer_date ?? rpt.incidentDate ?? rpt.incident_date)}</p>
+                      <p className="font-medium">{formatDate((rpt.transferDate as string) ?? (rpt.transfer_date as string) ?? (rpt.incidentDate as string) ?? (rpt.incident_date as string))}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">วันที่ลงประกาศ</p>
-                      <p className="font-medium">{formatDate(rpt.postDate ?? rpt.post_date)}</p>
+                      <p className="font-medium">{formatDate((rpt.postDate as string) ?? (rpt.post_date as string))}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">รายละเอียดเพิ่มเติม</p>
-                      <p className="text-sm">{rpt.moreDetails ?? rpt.incidentDetails ?? rpt.incident_details ?? '-'}</p>
+                      <p className="text-sm">{(rpt.moreDetails as string) ?? (rpt.incidentDetails as string) ?? (rpt.incident_details as string) ?? '-'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">วันเกิดเหตุ</p>
-                      <p className="font-medium">{formatDate(rpt.incidentDate ?? rpt.incident_date)}</p>
+                      <p className="font-medium">{formatDate((rpt.incidentDate as string) ?? (rpt.incident_date as string))}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">ความเสียหายโดยประมาณ</p>
-                      <p className="text-lg font-semibold text-destructive">{formatCurrency(Number(rpt.damageAmount ?? rpt.damage_amount ?? 0))}</p>
+                      <p className="text-lg font-semibold text-destructive">{formatCurrency(Number((rpt.damageAmount as number) ?? (rpt.damage_amount as number) ?? 0))}</p>
                     </div>
 
                     <div className="pt-4 flex justify-end gap-2">

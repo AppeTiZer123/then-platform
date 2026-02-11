@@ -35,6 +35,8 @@ export default function ReportPage() {
   }));
   const [story, setStory] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
+  const [processingStatus, setProcessingStatus] = useState<string>("");
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   // Show loading while checking auth
   if (status === "loading") {
@@ -96,12 +98,42 @@ export default function ReportPage() {
     if (!story.trim()) return;
     
     setStep("processing");
+    setProcessingStatus("กำลังวิเคราะห์ข้อมูลจากเรื่องเล่า...");
     
-    // Simulate AI processing
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    
-    setReferenceNumber(`RPT-2024-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`);
-    setStep("complete");
+    try {
+      // 1. Extract data using AI
+      const extractResponse = await fetch("/api/ai/extract-incident", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ story, contactInfo }),
+      });
+
+      if (!extractResponse.ok) throw new Error("Failed to extract data");
+      
+      const { data: extractedData } = await extractResponse.json();
+      
+      setProcessingStatus("กำลังสร้างเอกสาร PDF...");
+
+      // 2. Generate PDF
+      const pdfResponse = await fetch("/api/pdf/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(extractedData),
+      });
+
+      if (!pdfResponse.ok) throw new Error("Failed to generate PDF");
+
+      const pdfBlob = await pdfResponse.blob();
+      const url = URL.createObjectURL(pdfBlob);
+      setPdfUrl(url);
+      
+      setReferenceNumber(`RPT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`);
+      setStep("complete");
+    } catch (error) {
+      console.error("Error:", error);
+      alert("เกิดข้อผิดพลาดในการสร้างเอกสาร กรุณาลองใหม่อีกครั้ง");
+      setStep("story");
+    }
   };
 
   // Step 1: Contact Info
@@ -320,21 +352,27 @@ export default function ReportPage() {
                   <Bot className="h-10 w-10 text-primary-foreground animate-pulse" />
                 </div>
               </div>
-              <h2 className="text-xl font-bold mb-2">AI กำลังวิเคราะห์เรื่องราว...</h2>
+              <h2 className="text-xl font-bold mb-2">AI กำลังทำงาน...</h2>
               <p className="text-muted-foreground text-sm">
-                กำลังประมวลผลและสร้างเอกสารใบแจ้งความให้คุณ
+                {processingStatus}
               </p>
               <div className="mt-6 space-y-2 text-left max-w-xs mx-auto">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-green-500" />
+                <div className={`flex items-center gap-2 text-sm ${processingStatus.includes("วิเคราะห์") ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                  {processingStatus.includes("วิเคราะห์") ? (
+                    <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4 text-green-500" />
+                  )}
                   <span>วิเคราะห์ข้อมูลจากเรื่องเล่า</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                  <span>สร้างสำนวนคดี</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground opacity-50">
-                  <div className="h-4 w-4" />
+                <div className={`flex items-center gap-2 text-sm ${processingStatus.includes("สร้างเอกสาร") ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                  {processingStatus.includes("สร้างเอกสาร") ? (
+                    <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  ) : processingStatus.includes("วิเคราะห์") ? (
+                    <div className="h-4 w-4 bg-muted rounded-full" />
+                  ) : (
+                    <Check className="h-4 w-4 text-green-500" />
+                  )}
                   <span>สร้างเอกสาร PDF</span>
                 </div>
               </div>
@@ -348,53 +386,66 @@ export default function ReportPage() {
   }
 
   // Step 4: Complete
-  return (
-    <main className="min-h-screen flex flex-col">
-      <Navbar />
-      <div className="flex-1 flex items-center justify-center py-16 px-4">
-        <Card className="max-w-md w-full text-center">
-          <CardHeader>
-            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-              <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />
-            </div>
-            <CardTitle className="text-2xl text-green-700 dark:text-green-400">
-              สร้างเอกสารสำเร็จ!
-            </CardTitle>
-            <CardDescription>
-              AI ได้วิเคราะห์เรื่องราวและสร้างเอกสารใบแจ้งความให้คุณแล้ว
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-muted rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">หมายเลขอ้างอิง</p>
-              <p className="text-xl font-bold text-primary">{referenceNumber}</p>
-            </div>
-            
-            <div className="bg-primary/5 rounded-lg p-4 text-left">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium mb-1">ขั้นตอนถัดไป:</p>
-                  <p className="text-muted-foreground">
-                    เจ้าหน้าที่จะตรวจสอบข้อมูลและอาจติดต่อกลับเพื่อขอข้อมูลเพิ่มเติม
-                    คุณสามารถดาวน์โหลดเอกสารหรือติดตามสถานะได้
-                  </p>
+  if (step === "complete") {
+    return (
+      <main className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center py-16 px-4">
+          <Card className="max-w-md w-full text-center">
+            <CardHeader>
+              <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+                <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+              <CardTitle className="text-2xl text-green-700 dark:text-green-400">
+                สร้างเอกสารสำเร็จ!
+              </CardTitle>
+              <CardDescription>
+                AI ได้วิเคราะห์เรื่องราวและสร้างเอกสารใบแจ้งความให้คุณแล้ว
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-muted rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">หมายเลขอ้างอิง</p>
+                <p className="text-xl font-bold text-primary">{referenceNumber}</p>
+              </div>
+              
+              {pdfUrl && (
+                <Button className="w-full" size="lg" asChild>
+                  <a href={pdfUrl} download={`ใบแจ้งความ_${referenceNumber}.pdf`}>
+                    <Upload className="mr-2 h-4 w-4 rotate-180" />
+                    ดาวน์โหลดเอกสาร PDF
+                  </a>
+                </Button>
+              )}
+              
+              <div className="bg-primary/5 rounded-lg p-4 text-left mt-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium mb-1">ขั้นตอนถัดไป:</p>
+                    <p className="text-muted-foreground">
+                      คุณสามารถนำไฟล์ PDF นี้ไปพิมพ์เพื่อใช้ประกอบการแจ้งความที่สถานีตำรวจได้ทันที
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" className="flex-1" asChild>
-                <Link href="/report/track">ติดตามสถานะ</Link>
-              </Button>
-              <Button className="flex-1" asChild>
-                <Link href="/">กลับหน้าแรก</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <Footer />
-    </main>
-  );
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" className="flex-1" asChild>
+                  <Link href="/report/track">ติดตามสถานะ</Link>
+                </Button>
+                <Button variant="ghost" className="flex-1" asChild>
+                  <Link href="/">กลับหน้าแรก</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  return null; // Should not reach here
+
 }

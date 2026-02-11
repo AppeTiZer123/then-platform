@@ -24,17 +24,17 @@ export default function CompleteProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // ถ้ามี name แล้ว (profile ครบแล้ว) ให้ redirect หลัง render
+  useEffect(() => {
+    if (session?.user?.name) {
+      router.push("/");
+    }
+  }, [session?.user?.name, router]);
+
   // ถ้ายังไม่ login ให้ไปหน้า login (จริงๆ middleware จะ handle แล้ว)
   if (!session?.user) {
     return null;
   }
-
-  // ถ้ามี name แล้ว (profile ครบแล้ว) ให้ redirect หลัง render
-  useEffect(() => {
-    if (session.user.name) {
-      router.push("/");
-    }
-  }, [session?.user?.name, router]);
 
   if (session.user.name) return null;
 

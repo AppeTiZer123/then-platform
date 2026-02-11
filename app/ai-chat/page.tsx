@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,23 @@ import {
   Check,
   AlertTriangle,
 } from "lucide-react";
-import { ChatMessage, getAIResponse, createMessage } from "@/lib/ai-service";
 import { createQuickReport, QuickReportData } from "@/lib/actions/fraud";
 
+// Message type
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
+const GREETING_MESSAGE: ChatMessage = {
+  id: "greeting",
+  role: "assistant",
+  content: "สวัสดีครับ! 👋 ผมเป็น AI ผู้ช่วยของระบบ THEN\n\nผมพร้อมให้คำปรึกษาเรื่อง:\n• การถูกหลอกลวงออนไลน์\n• วิธีป้องกันตัวจากมิจฉาชีพ\n• ขั้นตอนการแจ้งความ\n• ตรวจสอบบัญชีที่น่าสงสัย\n\n💡 หากต้องการ **แจ้งข้อมูลมิจฉาชีพ** สามารถกดปุ่ม 'แจ้งเบาะแส' ด้านล่างได้เลยครับ\n\nมีอะไรให้ช่วยไหมครับ?",
+};
+
 export default function AIChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([GREETING_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,9 +47,7 @@ export default function AIChatPage() {
   // Quick Report state
   const [showQuickReport, setShowQuickReport] = useState(false);
   const [quickReportLoading, setQuickReportLoading] = useState(false);
-  const [quickReportSuccess, setQuickReportSuccess] = useState<string | null>(
-    null,
-  );
+  const [quickReportSuccess, setQuickReportSuccess] = useState<string | null>(null);
   const [quickReportForm, setQuickReportForm] = useState<QuickReportData>({
     reporterName: "",
     reporterPhone: "",
@@ -60,14 +70,85 @@ export default function AIChatPage() {
     inputRef.current?.focus();
   }, []);
 
-  // Initial greeting
-  useEffect(() => {
-    const greeting = createMessage(
-      "assistant",
-      "สวัสดีครับ! 👋 ผมเป็น AI ผู้ช่วยของระบบ THEN\n\nผมพร้อมให้คำปรึกษาเรื่อง:\n• การถูกหลอกลวงออนไลน์\n• วิธีป้องกันตัวจากมิจฉาชีพ\n• ขั้นตอนการแจ้งความ\n• ตรวจสอบบัญชีที่น่าสงสัย\n\n💡 หากต้องการ **แจ้งข้อมูลมิจฉาชีพ** สามารถกดปุ่ม 'แจ้งเบาะแส' ด้านล่างได้เลยครับ\n\nมีอะไรให้ช่วยไหมครับ?",
-    );
-    setMessages([greeting]);
-  }, []);
+  // Submit message to AI
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: ChatMessage = {
+      id: `user_${Date.now()}`,
+      role: "user",
+      content: input.trim(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      // เรียก API route
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("API request failed");
+      }
+
+      // อ่าน streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+
+      const assistantMessage: ChatMessage = {
+        id: `assistant_${Date.now()}`,
+        role: "assistant",
+        content: "",
+      };
+      
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          assistantContent += chunk;
+          
+          // Update message with new content
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage.role === "assistant") {
+              lastMessage.content = assistantContent;
+            }
+            return newMessages;
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `error_${Date.now()}`,
+          role: "assistant",
+          content: "ขออภัยครับ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+      inputRef.current?.focus();
+    }
+  }, [input, isLoading, messages]);
 
   // Handle Quick Report submit
   const handleQuickReportSubmit = async () => {
@@ -78,13 +159,14 @@ export default function AIChatPage() {
       const result = await createQuickReport(quickReportForm);
       if (result.success) {
         setQuickReportSuccess(result.caseNumber || null);
-        // Add success message to chat
-        const successMsg = createMessage(
-          "assistant",
-          `✅ บันทึกเบาะแสเรียบร้อยแล้ว!\n\n📋 หมายเลขอ้างอิง: **${result.caseNumber}**\n\nขอบคุณที่ช่วยแจ้งข้อมูล ข้อมูลนี้จะช่วยเตือนผู้อื่นไม่ให้ตกเป็นเหยื่อครับ`,
-        );
-        setMessages((prev) => [...prev, successMsg]);
-        // Reset form after 2 seconds
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `report_${Date.now()}`,
+            role: "assistant",
+            content: `✅ บันทึกเบาะแสเรียบร้อยแล้ว!\n\n📋 หมายเลขอ้างอิง: **${result.caseNumber}**\n\nขอบคุณที่ช่วยแจ้งข้อมูล ข้อมูลนี้จะช่วยเตือนผู้อื่นไม่ให้ตกเป็นเหยื่อครับ`,
+          },
+        ]);
         setTimeout(() => {
           setShowQuickReport(false);
           setQuickReportSuccess(null);
@@ -101,42 +183,26 @@ export default function AIChatPage() {
           });
         }, 2000);
       } else {
-        const errorMsg = createMessage("assistant", `❌ ${result.message}`);
-        setMessages((prev) => [...prev, errorMsg]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error_${Date.now()}`,
+            role: "assistant",
+            content: `❌ ${result.message}`,
+          },
+        ]);
       }
     } catch {
-      const errorMsg = createMessage(
-        "assistant",
-        "❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
-      );
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `error_${Date.now()}`,
+          role: "assistant",
+          content: "❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+        },
+      ]);
     } finally {
       setQuickReportLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = createMessage("user", input.trim());
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      const response = await getAIResponse(input.trim());
-      const assistantMessage = createMessage("assistant", response);
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch {
-      const errorMessage = createMessage(
-        "assistant",
-        "ขออภัยครับ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
-      );
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-      inputRef.current?.focus();
     }
   };
 
