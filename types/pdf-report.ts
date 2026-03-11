@@ -17,11 +17,13 @@ export interface IncidentReportData {
   current_address: string;
 
   // ข้อมูลสถานีตำรวจ (Section 3)
+  met_investigator?: boolean; // true = เคยพบแล้ว, false = ยังไม่เคยพบ
   police_province?: string;
   station_name?: string;
   tech_crime_province?: string;
 
   // รายละเอียดเหตุการณ์ (Section 4)
+  case_type?: string; // ประเภทคดีที่ตรงกับ caseTypes array ใน PDF template
   incident_details: string;
 
   // ทรัพย์สินที่เสียหาย (Section 5)
@@ -71,9 +73,11 @@ export const emptyIncidentReportData: IncidentReportData = {
   email: "",
   address: "",
   current_address: "",
+  met_investigator: undefined,
   police_province: "",
   station_name: "",
   tech_crime_province: "",
+  case_type: "",
   incident_details: "",
   asset_type: "",
   asset_details: "",

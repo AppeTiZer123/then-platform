@@ -6,6 +6,8 @@ import {
   View,
   StyleSheet,
   Font,
+  Svg,
+  Path,
 } from "@react-pdf/renderer";
 import type { IncidentReportData } from "@/types/pdf-report";
 import path from "path";
@@ -30,12 +32,12 @@ const styles = StyleSheet.create({
   page: {
     fontFamily: "Sarabun",
     fontSize: 11,
-    padding: "12mm 18mm",
-    lineHeight: 1.5,
+    padding: "10mm 15mm",
+    lineHeight: 1.3,
   },
   header: {
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 14,
@@ -51,16 +53,16 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   section: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   sectionNumber: {
     fontWeight: 700,
-    fontSize: 12,
-    marginBottom: 6,
+    fontSize: 11,
+    marginBottom: 4,
   },
   row: {
     flexDirection: "row",
-    marginBottom: 4,
+    marginBottom: 2,
     flexWrap: "wrap",
   },
   label: {
@@ -74,18 +76,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   subSection: {
-    marginLeft: 15,
-    marginTop: 8,
+    marginLeft: 10,
+    marginTop: 4,
   },
   subSectionTitle: {
     fontWeight: 700,
     fontSize: 11,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 3,
+    marginBottom: 2,
   },
   checkbox: {
     width: 10,
@@ -98,17 +100,24 @@ const styles = StyleSheet.create({
     height: 10,
     border: "1pt solid #000",
     marginRight: 5,
-    backgroundColor: "#000",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkmark: {
+    fontSize: 9,
+    fontFamily: "Sarabun",
+    marginTop: -2,
   },
   incidentDetails: {
-    minHeight: 60,
-    marginTop: 8,
+    minHeight: 40,
+    marginTop: 4,
     padding: 5,
   },
   signatureSection: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 30,
+    marginTop: 15,
   },
   signatureBlock: {
     flex: 1,
@@ -119,10 +128,10 @@ const styles = StyleSheet.create({
     width: "80%",
     marginHorizontal: "auto",
     marginBottom: 4,
-    paddingTop: 20,
+    paddingTop: 15,
   },
   note: {
-    marginTop: 20,
+    marginTop: 10,
     fontSize: 10,
     color: "#333",
     textAlign: "justify",
@@ -145,6 +154,15 @@ const caseTypes = [
   "หลอกลวงซื้อขายสินค้าหรือบริการ ที่มีลักษณะเป็นกระบวนการ",
   "คดีอาชญากรรมทางเทคโนโลยีทางลักษณะอื่นๆ",
 ];
+
+const CheckmarkIcon = () => (
+  <Svg viewBox="0 0 24 24" width={8} height={8}>
+    <Path
+      d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"
+      fill="#000"
+    />
+  </Svg>
+);
 
 interface Props {
   data: IncidentReportData;
@@ -217,11 +235,15 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
           3. ท่านเคยไปพบพนักงานสอบสวนในคดีนี้มาแล้วหรือไม่
         </Text>
         <View style={styles.checkboxRow}>
-          <View style={styles.checkbox} />
+          <View style={data.met_investigator === false ? styles.checkboxChecked : styles.checkbox}>
+            {data.met_investigator === false && <CheckmarkIcon />}
+          </View>
           <Text>ยังไม่เคยพบ</Text>
         </View>
         <View style={styles.checkboxRow}>
-          <View style={styles.checkbox} />
+          <View style={data.met_investigator === true ? styles.checkboxChecked : styles.checkbox}>
+            {data.met_investigator === true && <CheckmarkIcon />}
+          </View>
           <Text>เคยพบแล้ว</Text>
         </View>
         <Text style={{ marginTop: 6, marginBottom: 4 }}>
@@ -241,7 +263,9 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
         <Text style={styles.sectionNumber}>4. ประเภทของเรื่อง</Text>
         {caseTypes.map((type, index) => (
           <View key={index} style={styles.checkboxRow}>
-            <View style={styles.checkbox} />
+            <View style={type === data.case_type ? styles.checkboxChecked : styles.checkbox}>
+              {type === data.case_type && <CheckmarkIcon />}
+            </View>
             <Text style={{ fontSize: 10 }}>{type}</Text>
           </View>
         ))}

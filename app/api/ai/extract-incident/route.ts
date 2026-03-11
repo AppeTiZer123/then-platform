@@ -32,6 +32,29 @@ const incidentSchema = z.object({
   suspect_account_number: z.string().describe("เลขบัญชีคนร้าย"),
   suspect_bank_name: z.string().describe("ธนาคารคนร้าย"),
   suspect_account_name: z.string().describe("ชื่อบัญชีคนร้าย"),
+
+  // Checkbox fields for PDF
+  case_type: z.string().describe(
+    `ประเภทคดีที่ตรงที่สุดจากรายการต่อไปนี้ ต้องตอบเป็น string ที่ตรงกันพอดี:
+      - "คดีไม่เข้าข่ายตาม พ.ร.ก."
+      - "หลอกลวงซื้อขายสินค้าหรือบริการ ที่ไม่มีลักษณะเป็นขบวนการ"
+      - "หลอกลวงเป็นบุคคลอื่นเพื่อยืมเงิน"
+      - "หลอกลวงให้รักแล้วโอนเงิน"
+      - "หลอกลวงให้โอนเงินเพื่อรับรางวัลหรือวัตถุประสงค์อื่นๆ"
+      - "หลอกลวงให้กู้เงินอันมีลักษณะฉ้อโกง กรรโชก หรือรีดเอาทรัพย์"
+      - "หลอกลวงให้โอนเงินเพื่อทำงานหารายได้พิเศษ"
+      - "ข่มขู่ทางโทรศัพท์ให้เกิดความกลัวและหลอกให้โอนเงิน"
+      - "หลอกลวงให้ติดตั้งโปรแกรมควบคุมระบบในโทรศัพท์"
+      - "หลอกลวงให้ลงทุนผ่านระบบคอมพิวเตอร์"
+      - "หลอกลวงเกี่ยวกับสินทรัพย์ดิจิทัล"
+      - "หลอกลวงซื้อขายสินค้าหรือบริการ ที่มีลักษณะเป็นกระบวนการ"
+      - "คดีอาชญากรรมทางเทคโนโลยีทางลักษณะอื่นๆ"`,
+  ),
+  met_investigator: z
+    .boolean()
+    .describe(
+      "ผู้แจ้งเคยไปพบพนักงานสอบสวน/แจ้งความที่สถานีตำรวจแล้วหรือยัง (true = เคยแล้ว, false = ยังไม่เคย)",
+    ),
 });
 
 export async function POST(req: NextRequest) {
@@ -86,12 +109,16 @@ export async function POST(req: NextRequest) {
       asset_date: object.asset_date,
       asset_time: object.asset_time,
 
-      // Suspect info mapping (if specific fields are empty, try to put meaningful info in other fields)
+      // Suspect info mapping
       perpetrator_phone: object.perpetrator_phone,
-      received_phone: object.phone || contactInfo?.phone || "", // เบอร์ที่ได้รับ SMS/โทร (สมมติว่าเป็นเบอร์ผู้เสียหายรับสาย)
+      received_phone: object.phone || contactInfo?.phone || "",
 
       social_media_type: object.social_media_type,
       social_media_url: object.social_media_url,
+
+      // Checkbox fields
+      case_type: object.case_type,
+      met_investigator: object.met_investigator,
 
       report_date: new Date().toLocaleDateString("th-TH", {
         year: "numeric",
