@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import React, { useState } from "react"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import UserManagement from "./components/UserManagement"
+import React, { useState } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import UserManagement from "./components/UserManagement";
 
-import DataManagement from "./components/DataManagement"
-import SecuritySettings from "./components/SecuritySettings"
-
-import Integrations from "./components/Integrations"
+import DataManagement from "./components/DataManagement";
 
 const SECTIONS = [
   { key: "users", label: "การจัดการผู้ใช้" },
   { key: "data", label: "การจัดการข้อมูล" },
-  { key: "security", label: "ความปลอดภัย" },
-  
-  { key: "integrations", label: "Integrations" },
-]
+];
 
 export default function SettingsPage() {
-  const [active, setActive] = useState<string>("users")
+  const [active, setActive] = useState<string>("users");
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -30,7 +30,9 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>เมนูตั้งค่า</CardTitle>
-              <CardDescription>เลือกหมวดเพื่อแก้ไขการตั้งค่าระบบ</CardDescription>
+              <CardDescription>
+                เลือกหมวดเพื่อแก้ไขการตั้งค่าระบบ
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <nav className="flex flex-col gap-2">
@@ -54,11 +56,8 @@ export default function SettingsPage() {
           {active === "users" && <UserManagement />}
           {/* removed roles & system sections */}
           {active === "data" && <DataManagement />}
-          {active === "security" && <SecuritySettings />}
-          {/* removed features section */}
-          {active === "integrations" && <Integrations />}
         </section>
       </div>
     </div>
-  )
+  );
 }
