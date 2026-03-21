@@ -24,6 +24,7 @@ const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/reports", label: "รายการแจ้งความ", icon: FileText },
   { href: "/admin/fraud-list", label: "บัญชีมิจฉาชีพ", icon: AlertTriangle },
+  { href: "/admin/consults", label: "ปรึกษาปัญหา", icon: MessageCircle },
   { href: "/admin/chat", label: "แชท", icon: MessageCircle },
   { href: "/admin/settings", label: "ตั้งค่า", icon: Settings },
   { href: "/", label: "กลับหน้าแรก", icon: Home },
