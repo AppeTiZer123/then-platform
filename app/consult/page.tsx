@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -13,26 +13,110 @@ import {
   Phone, 
   Mail, 
   ExternalLink,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from "lucide-react";
-import { mockConsultations } from "@/lib/mock-data";
+import { useSession } from "next-auth/react";
+
+// Update Consultation type interface based on our API response
+interface ConsultationData {
+  id: string;
+  subject: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  responses: {
+    id: string;
+    message: string;
+    createdAt: string;
+    responder: {
+      name: string;
+      role: string;
+    };
+  }[];
+}
 
 export default function ConsultPage() {
+  const { data: session } = useSession();
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  
+  const [consultations, setConsultations] = useState<ConsultationData[]>([]);
+  const [isLoadingList, setIsLoadingList] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    
+    const loadData = async () => {
+      if (!session?.user?.id) {
+        setIsLoadingList(false);
+        return;
+      }
+      
+      try {
+        const res = await fetch("/api/consultations");
+        const data = await res.json();
+        if (mounted && data.ok) {
+          setConsultations(data.consultations);
+        }
+      } catch (err) {
+        console.error("Failed to fetch consultations:", err);
+      } finally {
+        if (mounted) {
+          setIsLoadingList(false);
+        }
+      }
+    };
+
+    loadData();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) return;
 
+    if (!session?.user?.id) {
+      alert("กรุณาเข้าสู่ระบบก่อนส่งคำปรึกษา");
+      return;
+    }
+
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-    setSubject("");
-    setMessage("");
+    
+    try {
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, message }),
+      });
+      
+      const data = await res.json();
+      
+      if (data.ok) {
+        setIsSubmitted(true);
+        setSubject("");
+        setMessage("");
+        
+        // Refresh list after submit
+        const resList = await fetch("/api/consultations");
+        const dataList = await resList.json();
+        if (dataList.ok) {
+          setConsultations(dataList.consultations);
+        }
+      } else {
+        alert("เกิดข้อผิดพลาด: " + (data.error || "ไม่สามารถส่งคำถามได้"));
+      }
+    } catch (err) {
+      console.error("Submit error:", err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -107,7 +191,7 @@ export default function ConsultPage() {
             </Card>
           </div>
 
-          {/* Consultation Form */}
+          {/* Consultation Form & List */}
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
@@ -120,7 +204,14 @@ export default function ConsultPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {isSubmitted ? (
+                {!session ? (
+                  <div className="text-center py-6 bg-muted/30 rounded-lg">
+                    <p className="text-muted-foreground text-sm mb-4">กรุณาเข้าสู่ระบบก่อนส่งคำปรึกษา</p>
+                    <Button onClick={() => window.location.href = "/login"} variant="outline">
+                      เข้าสู่ระบบ
+                    </Button>
+                  </div>
+                ) : isSubmitted ? (
                   <div className="text-center py-8">
                     <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
                       <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -158,7 +249,10 @@ export default function ConsultPage() {
                       disabled={isSubmitting || !subject.trim() || !message.trim()}
                     >
                       {isSubmitting ? (
-                        "กำลังส่ง..."
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          กำลังส่ง...
+                        </>
                       ) : (
                         <>
                           <Send className="mr-2 h-4 w-4" />
@@ -172,34 +266,46 @@ export default function ConsultPage() {
             </Card>
 
             {/* Previous Consultations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">ตัวอย่างคำถามที่ถามบ่อย</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {mockConsultations.map((consultation) => (
-                  <div key={consultation.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-sm">{consultation.subject}</h4>
-                      <Badge variant={consultation.status === "answered" ? "default" : "secondary"}>
-                        {consultation.status === "answered" ? "ตอบแล้ว" : "รอตอบ"}
-                      </Badge>
+            {session && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">ประวัติการขอคำปรึกษาของคุณ</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isLoadingList ? (
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">{consultation.message}</p>
-                    
-                    {consultation.responses.length > 0 && (
-                      <div className="bg-muted/50 rounded-lg p-3 mt-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CheckCircle className="h-4 w-4 text-primary" />
-                          <span className="text-xs font-medium">{consultation.responses[0].responderName}</span>
+                  ) : consultations.length === 0 ? (
+                    <p className="text-sm text-center text-muted-foreground py-6">
+                      ยังไม่มีประวัติการส่งคำถาม
+                    </p>
+                  ) : (
+                    consultations.map((consultation) => (
+                      <div key={consultation.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-sm">{consultation.subject}</h4>
+                          <Badge variant={consultation.status === "answered" ? "default" : "secondary"}>
+                            {consultation.status === "answered" ? "ตอบแล้ว" : "รอตอบ"}
+                          </Badge>
                         </div>
-                        <p className="text-sm">{consultation.responses[0].message}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{consultation.message}</p>
+                        
+                        {consultation.responses && consultation.responses.length > 0 && (
+                          <div className="bg-muted/50 rounded-lg p-3 mt-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <CheckCircle className="h-4 w-4 text-primary" />
+                              <span className="text-xs font-medium">{consultation.responses[0].responder?.name || "เจ้าหน้าที่"}</span>
+                            </div>
+                            <p className="text-sm">{consultation.responses[0].message}</p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
