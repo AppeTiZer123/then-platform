@@ -1,14 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   try {
     // Dynamic import to avoid module import-time errors when DATABASE_URL is missing
-    const mod = await import('@/lib/actions/reports');
+    const mod = await import("@/lib/actions/reports");
     const data = await mod.getAllReports();
     return NextResponse.json({ ok: true, data });
-  } catch (error: any) {
-    console.error('API error fetching reports', error);
-    const message = error?.message || String(error);
-    return NextResponse.json({ ok: false, error: 'Failed to fetch reports', message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("API error fetching reports", error);
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { ok: false, error: "Failed to fetch reports", message },
+      { status: 500 },
+    );
   }
 }

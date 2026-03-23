@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   try {
     const { id } = await params;
     const mod = await import("@/lib/actions/reports");
@@ -14,12 +23,51 @@ export async function GET(
         { status: 404 },
       );
     return NextResponse.json({ ok: true, data: rpt });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("API get report by id error", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
     return NextResponse.json(
-      { ok: false, message: err?.message || String(err) },
-      { status: 500 },
+      { ok: false, error: "Unauthorized" },
+      { status: 401 },
     );
+  }
+
+  try {
+    const { id } = await params;
+    const body = await req.json();
+    const { status } = body;
+
+    if (!status) {
+      return NextResponse.json(
+        { ok: false, error: "status is required" },
+        { status: 400 },
+      );
+    }
+
+    const mod = await import("@/lib/db/repositories");
+    const updated = await mod.reportRepo.updateStatus(id, status);
+
+    if (!updated) {
+      return NextResponse.json(
+        { ok: false, error: "Report not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, data: updated });
+  } catch (err: unknown) {
+    console.error("API PATCH report error", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

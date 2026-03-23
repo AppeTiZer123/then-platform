@@ -1,9 +1,21 @@
-import { NextResponse } from 'next/server';
-import postgres from 'postgres';
+import { NextResponse } from "next/server";
+import postgres from "postgres";
+import { auth } from "@/lib/auth";
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "admin") {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
   if (!process.env.DATABASE_URL) {
-    return NextResponse.json({ ok: false, error: 'DATABASE_URL not set' }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "DATABASE_URL not set" },
+      { status: 500 },
+    );
   }
 
   const sql = postgres(process.env.DATABASE_URL, { prepare: false });
@@ -14,16 +26,23 @@ export async function GET() {
       LIMIT 500
     `;
 
-    const fraudRows = await sql`
-      SELECT * FROM then_app.fraud_reports
-      LIMIT 500
-    `;
-
-    try { await sql.end(); } catch (_) {}
-    return NextResponse.json({ ok: true, reports: reportsRows, fraud_reports: fraudRows });
-  } catch (err: any) {
-    try { await sql.end(); } catch (_) {}
-    console.error('Raw reports error', err);
-    return NextResponse.json({ ok: false, error: err?.message || String(err) }, { status: 500 });
+    try {
+      await sql.end();
+    } catch {
+      /* ignore */
+    }
+    return NextResponse.json({
+      ok: true,
+      reports: reportsRows,
+    });
+  } catch (err: unknown) {
+    try {
+      await sql.end();
+    } catch {
+      /* ignore */
+    }
+    console.error("Raw reports error", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
