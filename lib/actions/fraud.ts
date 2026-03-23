@@ -53,10 +53,12 @@ export async function createQuickReport(
   data: QuickReportData,
 ): Promise<QuickReportResult> {
   try {
-    // 1. Generate case number
+    // 1. Generate case number — ใช้ COUNT(*) แทน getAll() เพื่อ performance
+    //    และใช้ crypto.randomUUID() suffix เพื่อป้องกัน race condition
     const year = new Date().getFullYear();
-    const allAccounts = await fraudRepo.getAll();
-    const caseNumber = `QR-${year}-${String(allAccounts.length + 1).padStart(4, "0")}`;
+    const reportCount = await reportRepo.count();
+    const suffix = crypto.randomUUID().slice(0, 6).toUpperCase();
+    const caseNumber = `QR-${year}-${String(reportCount + 1).padStart(4, "0")}-${suffix}`;
 
     // 2. ถ้ามีข้อมูลบัญชีผู้ต้องสงสัย ให้สร้างหรืออัพเดท fraud_account
     let fraudAccountId: string | null = null;
@@ -120,5 +122,72 @@ export async function createQuickReport(
       success: false,
       message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง",
     };
+  }
+}
+
+export async function createFraudAccount(data: {
+  accountNumber: string;
+  bankName: string;
+  accountName?: string;
+  phoneNumber?: string;
+  reportCount?: number;
+  totalDamage?: number;
+  status?: string;
+}): Promise<{ success: boolean; account?: FraudAccount; error?: string }> {
+  try {
+    const account = await fraudRepo.create({
+      accountNumber: data.accountNumber,
+      bankName: data.bankName,
+      accountName: data.accountName || null,
+      phoneNumber: data.phoneNumber || null,
+      reportCount: data.reportCount || 0,
+      totalDamage: String(data.totalDamage || 0),
+      status: data.status || "pending",
+    });
+    return { success: true, account };
+  } catch (error) {
+    console.error("Create fraud account error:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function updateFraudAccount(
+  id: string,
+  data: {
+    accountNumber?: string;
+    bankName?: string;
+    accountName?: string;
+    phoneNumber?: string;
+    reportCount?: number;
+    totalDamage?: number;
+    status?: string;
+  },
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await fraudRepo.update(id, {
+      ...data,
+      accountName:
+        data.accountName !== undefined ? data.accountName || null : undefined,
+      phoneNumber:
+        data.phoneNumber !== undefined ? data.phoneNumber || null : undefined,
+      totalDamage:
+        data.totalDamage !== undefined ? String(data.totalDamage) : undefined,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Update fraud account error:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function deleteFraudAccount(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await fraudRepo.delete(id);
+    return { success: true };
+  } catch (error) {
+    console.error("Delete fraud account error:", error);
+    return { success: false, error: String(error) };
   }
 }

@@ -1,7 +1,6 @@
 "use server";
 
 import { reportRepo } from "@/lib/db/repositories";
-import postgres from "postgres";
 
 type Report = {
   id: string;
@@ -25,111 +24,73 @@ type Report = {
   moreDetails?: string | null;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapLegacyRow(row: any): Report {
-  return {
-    id: row.id ?? String(row.case_number ?? Math.random()),
-    caseNumber: row.case_number ?? "",
-    reporterName: row.reporter_name ?? "",
-    reporterPhone: row.reporter_phone ?? null,
-    incidentDate: row.incident_date ?? null,
-    incidentDetails: row.incident_details ?? row.details ?? null,
-    damageAmount: row.damage_amount != null ? String(row.damage_amount) : null,
-    status: row.status ?? null,
-    createdAt: row.created_at ? new Date(row.created_at) : null,
-    updatedAt: row.updated_at ? new Date(row.updated_at) : null,
-    idCard: row.id_card ?? row.id_card_encrypted ?? row.idcard ?? null,
-    transferAmount:
-      row.transfer_amount ??
-      row.amount ??
-      (row.damage_amount != null ? String(row.damage_amount) : null),
-    productOrdered: row.product_ordered ?? row.product ?? row.item ?? null,
-    accountNumber:
-      row.account_number ?? row.bank_account ?? row.suspect_account ?? null,
-    sellerPage: row.seller_page ?? row.page ?? null,
-    transferDate: row.transfer_date ?? row.paid_at ?? null,
-    postDate: row.post_date ?? row.posted_at ?? null,
-    moreDetails: row.additional_details ?? row.more_details ?? null,
-  };
-}
+type LegacyRow = Record<string, unknown>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapRepoResult(r: any): Report {
+function mapRepoResult(r: LegacyRow): Report {
   return {
-    id: r.id ?? r.caseNumber ?? r.case_number ?? String(Math.random()),
-    caseNumber: r.caseNumber ?? r.case_number ?? "",
-    reporterName: r.reporterName ?? r.reporter_name ?? "",
-    reporterPhone: r.reporterPhone ?? r.reporter_phone ?? null,
-    incidentDate: r.incidentDate ?? r.incident_date ?? null,
-    incidentDetails: r.incidentDetails ?? r.incident_details ?? null,
-    damageAmount: r.damageAmount ?? r.damage_amount ?? null,
-    status: r.status,
-    createdAt: r.createdAt ?? r.created_at,
-    updatedAt: r.updatedAt ?? r.updated_at,
-    idCard: r.idCard ?? r.id_card ?? r.id_card_encrypted ?? null,
+    id: String(r.id ?? r.caseNumber ?? r.case_number ?? Math.random()),
+    caseNumber: String(r.caseNumber ?? r.case_number ?? ""),
+    reporterName: String(r.reporterName ?? r.reporter_name ?? ""),
+    reporterPhone:
+      (r.reporterPhone as string) ?? (r.reporter_phone as string) ?? null,
+    incidentDate:
+      (r.incidentDate as string) ?? (r.incident_date as string) ?? null,
+    incidentDetails:
+      (r.incidentDetails as string) ?? (r.incident_details as string) ?? null,
+    damageAmount:
+      (r.damageAmount as string) ?? (r.damage_amount as string) ?? null,
+    status: (r.status as string) ?? null,
+    createdAt: (r.createdAt as Date) ?? (r.created_at as Date) ?? null,
+    updatedAt: (r.updatedAt as Date) ?? (r.updated_at as Date) ?? null,
+    idCard:
+      (r.idCard as string) ??
+      (r.id_card as string) ??
+      (r.id_card_encrypted as string) ??
+      null,
     transferAmount:
-      r.transferAmount ??
-      r.transfer_amount ??
-      r.damageAmount ??
-      r.damage_amount ??
+      (r.transferAmount as string) ??
+      (r.transfer_amount as string) ??
+      (r.damageAmount as string) ??
+      (r.damage_amount as string) ??
       null,
-    productOrdered: r.productOrdered ?? r.product_ordered ?? r.product ?? null,
+    productOrdered:
+      (r.productOrdered as string) ??
+      (r.product_ordered as string) ??
+      (r.product as string) ??
+      null,
     accountNumber:
-      r.accountNumber ??
-      r.account_number ??
-      r.bank_account ??
-      r.suspect_account ??
+      (r.accountNumber as string) ??
+      (r.account_number as string) ??
+      (r.bank_account as string) ??
+      (r.suspect_account as string) ??
       null,
-    sellerPage: r.sellerPage ?? r.seller_page ?? r.page ?? null,
-    transferDate: r.transferDate ?? r.transfer_date ?? r.paid_at ?? null,
-    postDate: r.postDate ?? r.post_date ?? r.posted_at ?? null,
+    sellerPage:
+      (r.sellerPage as string) ??
+      (r.seller_page as string) ??
+      (r.page as string) ??
+      null,
+    transferDate:
+      (r.transferDate as string) ??
+      (r.transfer_date as string) ??
+      (r.paid_at as string) ??
+      null,
+    postDate:
+      (r.postDate as string) ??
+      (r.post_date as string) ??
+      (r.posted_at as string) ??
+      null,
     moreDetails:
-      r.moreDetails ?? r.additional_details ?? r.more_details ?? null,
+      (r.moreDetails as string) ??
+      (r.additional_details as string) ??
+      (r.more_details as string) ??
+      null,
   };
 }
 
 export async function getAllReports(): Promise<Report[]> {
   try {
-    // Try Drizzle reports table first
     const results = await reportRepo.getAll();
-
-    if (Array.isArray(results) && results.length > 0) {
-      return results.map(mapRepoResult);
-    }
-
-    // Fallback: try legacy then_app.fraud_reports table (raw query)
-    if (!process.env.DATABASE_URL) {
-      console.warn("DATABASE_URL not set, cannot query legacy fraud_reports");
-      return [];
-    }
-
-    const sql = postgres(process.env.DATABASE_URL, { prepare: false });
-    try {
-      const rows = await sql`
-        SELECT case_number, reporter_name, reporter_phone, incident_date, incident_details, damage_amount
-        FROM then_app.fraud_reports
-        ORDER BY incident_date DESC
-      `;
-      try {
-        await sql.end();
-      } catch {
-        /* ignore */
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return rows.map((r: any, i: number) => {
-        const mapped = mapLegacyRow(r);
-        mapped.id = `${mapped.caseNumber}__${i}`;
-        return mapped;
-      });
-    } catch (err) {
-      console.error("Legacy query failed:", err);
-      try {
-        await sql.end();
-      } catch {
-        /* ignore */
-      }
-      return [];
-    }
+    return results.map(mapRepoResult);
   } catch (error) {
     console.error("Failed to fetch reports:", error);
     return [];
@@ -139,39 +100,8 @@ export async function getAllReports(): Promise<Report[]> {
 export async function getReportById(id: string): Promise<Report | null> {
   try {
     const result = await reportRepo.findById(id);
-
-    if (result) return mapRepoResult(result);
-
-    // Fallback to legacy table
-    if (!process.env.DATABASE_URL) return null;
-    const sql = postgres(process.env.DATABASE_URL, { prepare: false });
-    try {
-      const rows = await sql`
-        SELECT case_number, reporter_name, reporter_phone, incident_date, incident_details, damage_amount
-        FROM then_app.fraud_reports
-        WHERE case_number = ${id}
-        LIMIT 1
-      `;
-      try {
-        await sql.end();
-      } catch {
-        /* ignore */
-      }
-      if (rows && rows.length > 0) {
-        const mapped = mapLegacyRow(rows[0]);
-        mapped.id = mapped.id ?? mapped.caseNumber;
-        return mapped;
-      }
-      return null;
-    } catch (err) {
-      console.error("Legacy getById failed:", err);
-      try {
-        await sql.end();
-      } catch {
-        /* ignore */
-      }
-      return null;
-    }
+    if (!result) return null;
+    return mapRepoResult(result as LegacyRow);
   } catch (error) {
     console.error("Failed to fetch report by id:", error);
     return null;

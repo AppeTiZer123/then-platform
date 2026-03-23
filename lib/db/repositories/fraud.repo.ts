@@ -1,6 +1,11 @@
 import { db } from "@/lib/db";
 import { fraudAccounts } from "@/lib/db/schema";
-import { or, ilike, desc } from "drizzle-orm";
+import { or, ilike, desc, eq } from "drizzle-orm";
+
+/** Escape special LIKE wildcard characters to prevent wildcard injection */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
 
 type FraudAccount = typeof fraudAccounts.$inferSelect;
 
@@ -12,7 +17,7 @@ export const fraudRepo = {
    * ค้นหาบัญชีมิจฉาชีพจาก query string
    */
   async search(query: string): Promise<FraudAccount | null> {
-    const normalizedQuery = query.replace(/-/g, "").trim();
+    const normalizedQuery = escapeLike(query.replace(/-/g, "").trim());
 
     const results = await db
       .select()
@@ -48,7 +53,7 @@ export const fraudRepo = {
     const results = await db
       .select()
       .from(fraudAccounts)
-      .where(ilike(fraudAccounts.accountNumber, accountNumber))
+      .where(eq(fraudAccounts.accountNumber, accountNumber))
       .limit(1);
 
     return results[0] || null;
@@ -99,6 +104,36 @@ export const fraudRepo = {
       .returning();
 
     return updated;
+  },
+
+  /**
+   * อัพเดทข้อมูลบัญชีทั่วไป (admin)
+   */
+  async update(
+    id: string,
+    data: {
+      accountNumber?: string;
+      bankName?: string;
+      accountName?: string | null;
+      phoneNumber?: string | null;
+      reportCount?: number;
+      totalDamage?: string;
+      status?: string;
+    },
+  ) {
+    const [updated] = await db
+      .update(fraudAccounts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(fraudAccounts.id, id))
+      .returning();
+    return updated;
+  },
+
+  /**
+   * ลบบัญชีมิจฉาชีพออกจาก DB
+   */
+  async delete(id: string) {
+    await db.delete(fraudAccounts).where(eq(fraudAccounts.id, id));
   },
 };
 

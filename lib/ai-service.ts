@@ -1,20 +1,7 @@
 // AI responses for consultation - uses Server Action for database queries
 import { searchFraudAccountFromDB } from "./actions/fraud";
 
-// Type for fraud account (matches database schema)
-interface FraudAccount {
-  id: string;
-  accountNumber: string;
-  bankName: string;
-  accountName: string | null;
-  phoneNumber: string | null;
-  reportCount: number | null;
-  totalDamage: string | null;
-  status: string | null;
-  lastReportedAt: Date | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-}
+type FraudAccount = Awaited<ReturnType<typeof searchFraudAccountFromDB>>;
 
 export interface ChatMessage {
   id: string;
@@ -63,7 +50,7 @@ function extractSearchQuery(message: string): string | null {
 }
 
 // สร้าง response สำหรับผลการค้นหามิจฉาชีพ
-function formatFraudResponse(account: FraudAccount): string {
+function formatFraudResponse(account: NonNullable<FraudAccount>): string {
   const statusMap: Record<string, string> = {
     confirmed: "🔴 ยืนยันแล้ว",
     investigating: "🟡 กำลังตรวจสอบ",
@@ -81,7 +68,7 @@ function formatFraudResponse(account: FraudAccount): string {
 📊 สถิติ:
 • ถูกรายงาน: ${account.reportCount || 0} ครั้ง
 • ความเสียหายรวม: ${formatCurrency(account.totalDamage)}
-• สถานะ: ${statusMap[account.status || 'pending'] || account.status}
+• สถานะ: ${statusMap[account.status || "pending"] || account.status}
 
 ⚠️ คำเตือน: โปรดระวังการทำธุรกรรมกับบุคคลนี้!
 
@@ -104,14 +91,27 @@ function formatNotFoundResponse(query: string): string {
 // ตรวจสอบว่าข้อความต้องการค้นหามิจฉาชีพหรือไม่
 function shouldSearchFraud(message: string): boolean {
   const searchKeywords = [
-    "ตรวจสอบ", "ค้นหา", "เช็ค", "เช็ก", "check",
-    "มิจฉาชีพ", "บัญชี", "เลขบัญชี", "เบอร์",
-    "หลอกลวง", "โกง", "น่าเชื่อถือ", "ปลอดภัย"
+    "ตรวจสอบ",
+    "ค้นหา",
+    "เช็ค",
+    "เช็ก",
+    "check",
+    "มิจฉาชีพ",
+    "บัญชี",
+    "เลขบัญชี",
+    "เบอร์",
+    "หลอกลวง",
+    "โกง",
+    "น่าเชื่อถือ",
+    "ปลอดภัย",
   ];
 
   const lowerMessage = message.toLowerCase();
-  const hasKeyword = searchKeywords.some(keyword => lowerMessage.includes(keyword));
-  const hasPattern = ACCOUNT_NUMBER_PATTERN.test(message) || PHONE_PATTERN.test(message);
+  const hasKeyword = searchKeywords.some((keyword) =>
+    lowerMessage.includes(keyword),
+  );
+  const hasPattern =
+    ACCOUNT_NUMBER_PATTERN.test(message) || PHONE_PATTERN.test(message);
 
   return hasKeyword || hasPattern;
 }
@@ -120,35 +120,43 @@ function shouldSearchFraud(message: string): boolean {
 const responses: { keywords: string[]; response: string }[] = [
   {
     keywords: ["สวัสดี", "หวัดดี", "hello", "hi"],
-    response: "สวัสดีครับ! ผมเป็น AI ผู้ช่วยของระบบ THEN พร้อมให้คำปรึกษาเรื่องการถูกหลอกลวงออนไลน์ครับ มีอะไรให้ช่วยไหมครับ?",
+    response:
+      "สวัสดีครับ! ผมเป็น AI ผู้ช่วยของระบบ THEN พร้อมให้คำปรึกษาเรื่องการถูกหลอกลวงออนไลน์ครับ มีอะไรให้ช่วยไหมครับ?",
   },
   {
     keywords: ["โดนโกง", "ถูกหลอก", "โกง", "หลอก"],
-    response: "เข้าใจครับ การถูกหลอกลวงเป็นเรื่องที่น่าเศร้ามาก ขอแนะนำให้คุณ:\n\n1. **เก็บหลักฐานทั้งหมด** - ภาพหน้าจอการสนทนา, หลักฐานการโอนเงิน\n2. **แจ้งธนาคาร** - โทรแจ้งธนาคารทันทีเพื่อระงับบัญชี\n3. **แจ้งความ** - สามารถแจ้งความได้ที่ระบบของเราโดยกดปุ่ม 'เล่าเรื่อง ให้ AI สร้างเอกสาร'\n\nต้องการให้ช่วยอะไรเพิ่มเติมไหมครับ?",
+    response:
+      "เข้าใจครับ การถูกหลอกลวงเป็นเรื่องที่น่าเศร้ามาก ขอแนะนำให้คุณ:\n\n1. **เก็บหลักฐานทั้งหมด** - ภาพหน้าจอการสนทนา, หลักฐานการโอนเงิน\n2. **แจ้งธนาคาร** - โทรแจ้งธนาคารทันทีเพื่อระงับบัญชี\n3. **แจ้งความ** - สามารถแจ้งความได้ที่ระบบของเราโดยกดปุ่ม 'เล่าเรื่อง ให้ AI สร้างเอกสาร'\n\nต้องการให้ช่วยอะไรเพิ่มเติมไหมครับ?",
   },
   {
     keywords: ["แจ้งความ", "แจ้ง", "ร้องเรียน"],
-    response: "ระบบของเราช่วยให้คุณสร้างเอกสารใบแจ้งความได้ง่ายๆ ครับ:\n\n1. กด 'เล่าเรื่อง ให้ AI สร้างเอกสาร'\n2. เล่าเหตุการณ์ที่เกิดขึ้น\n3. AI จะช่วยวิเคราะห์และสร้างเอกสารให้อัตโนมัติ\n\n**หมายเหตุ:** ต้องเข้าสู่ระบบก่อนจึงจะใช้งานได้ครับ",
+    response:
+      "ระบบของเราช่วยให้คุณสร้างเอกสารใบแจ้งความได้ง่ายๆ ครับ:\n\n1. กด 'เล่าเรื่อง ให้ AI สร้างเอกสาร'\n2. เล่าเหตุการณ์ที่เกิดขึ้น\n3. AI จะช่วยวิเคราะห์และสร้างเอกสารให้อัตโนมัติ\n\n**หมายเหตุ:** ต้องเข้าสู่ระบบก่อนจึงจะใช้งานได้ครับ",
   },
   {
     keywords: ["เงิน", "โอน", "คืน", "ได้เงินคืน"],
-    response: "การติดตามเงินคืนขึ้นอยู่กับหลายปัจจัยครับ:\n\n1. **ความเร็วในการแจ้ง** - ยิ่งแจ้งเร็ว โอกาสได้เงินคืนยิ่งมาก\n2. **หลักฐาน** - มีหลักฐานครบถ้วนจะช่วยให้ดำเนินการได้เร็วขึ้น\n3. **ประสานงาน** - ต้องประสานงานกับธนาคารและตำรวจ\n\nแนะนำให้แจ้งความและแจ้งธนาคารโดยเร็วที่สุดครับ",
+    response:
+      "การติดตามเงินคืนขึ้นอยู่กับหลายปัจจัยครับ:\n\n1. **ความเร็วในการแจ้ง** - ยิ่งแจ้งเร็ว โอกาสได้เงินคืนยิ่งมาก\n2. **หลักฐาน** - มีหลักฐานครบถ้วนจะช่วยให้ดำเนินการได้เร็วขึ้น\n3. **ประสานงาน** - ต้องประสานงานกับธนาคารและตำรวจ\n\nแนะนำให้แจ้งความและแจ้งธนาคารโดยเร็วที่สุดครับ",
   },
   {
     keywords: ["facebook", "เฟสบุ๊ค", "เพจ"],
-    response: "การหลอกลวงผ่าน Facebook มีหลายรูปแบบครับ:\n\n• **เพจปลอม** - แอบอ้างเป็นร้านค้าหรือแบรนด์\n• **โฆษณาลวง** - ขายของราคาถูกแต่ไม่ส่งของ\n• **แชทส่วนตัว** - หลอกให้โอนเงิน\n\n**วิธีป้องกัน:**\n1. ตรวจสอบประวัติเพจก่อนซื้อ\n2. ใช้บริการเก็บเงินปลายทาง\n3. ไม่โอนเงินก่อนได้รับสินค้า",
+    response:
+      "การหลอกลวงผ่าน Facebook มีหลายรูปแบบครับ:\n\n• **เพจปลอม** - แอบอ้างเป็นร้านค้าหรือแบรนด์\n• **โฆษณาลวง** - ขายของราคาถูกแต่ไม่ส่งของ\n• **แชทส่วนตัว** - หลอกให้โอนเงิน\n\n**วิธีป้องกัน:**\n1. ตรวจสอบประวัติเพจก่อนซื้อ\n2. ใช้บริการเก็บเงินปลายทาง\n3. ไม่โอนเงินก่อนได้รับสินค้า",
   },
   {
     keywords: ["line", "ไลน์"],
-    response: "การหลอกลวงผ่าน LINE ที่พบบ่อย:\n\n• **ปลอมเป็นคนรู้จัก** - ขอยืมเงิน\n• **แอบอ้างเป็นธนาคาร** - ขอข้อมูลส่วนตัว\n• **ลิงก์ปลอม** - หลอกให้กรอกข้อมูล\n\n**คำเตือน:** ธนาคารไม่เคยส่งลิงก์ทาง LINE ให้ยืนยันข้อมูลครับ",
+    response:
+      "การหลอกลวงผ่าน LINE ที่พบบ่อย:\n\n• **ปลอมเป็นคนรู้จัก** - ขอยืมเงิน\n• **แอบอ้างเป็นธนาคาร** - ขอข้อมูลส่วนตัว\n• **ลิงก์ปลอม** - หลอกให้กรอกข้อมูล\n\n**คำเตือน:** ธนาคารไม่เคยส่งลิงก์ทาง LINE ให้ยืนยันข้อมูลครับ",
   },
 ];
 
-const defaultResponse = "ขอบคุณสำหรับคำถามครับ ผมจะพยายามช่วยเหลือให้ดีที่สุด\n\nหากต้องการแจ้งเหตุการถูกหลอกลวง สามารถใช้ระบบ 'เล่าเรื่อง ให้ AI สร้างเอกสาร' ได้เลยครับ หรือหากต้องการตรวจสอบบัญชีมิจฉาชีพ สามารถพิมพ์เลขบัญชีหรือเบอร์โทรมาได้เลยครับ\n\nมีอะไรอื่นให้ช่วยไหมครับ?";
+const defaultResponse =
+  "ขอบคุณสำหรับคำถามครับ ผมจะพยายามช่วยเหลือให้ดีที่สุด\n\nหากต้องการแจ้งเหตุการถูกหลอกลวง สามารถใช้ระบบ 'เล่าเรื่อง ให้ AI สร้างเอกสาร' ได้เลยครับ หรือหากต้องการตรวจสอบบัญชีมิจฉาชีพ สามารถพิมพ์เลขบัญชีหรือเบอร์โทรมาได้เลยครับ\n\nมีอะไรอื่นให้ช่วยไหมครับ?";
 
 // Format currency
 function formatCurrency(amount: number | string | null): string {
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : (amount || 0);
+  const numAmount =
+    typeof amount === "string" ? parseFloat(amount) : amount || 0;
   return new Intl.NumberFormat("th-TH", {
     style: "currency",
     currency: "THB",
@@ -159,7 +167,7 @@ function formatCurrency(amount: number | string | null): string {
 export async function getAIResponse(message: string): Promise<string> {
   const lowerMessage = message.toLowerCase();
   const trimmedMessage = message.trim();
-  
+
   // ลองค้นหาในฐานข้อมูลมิจฉาชีพก่อนเสมอ
   // 1. ดึง query จาก pattern (เลขบัญชี, เบอร์โทร, หรือชื่อที่มี keyword นำหน้า)
   const extractedQuery = extractSearchQuery(message);
@@ -173,24 +181,27 @@ export async function getAIResponse(message: string): Promise<string> {
       return formatNotFoundResponse(extractedQuery);
     }
   }
-  
+
   // 2. ลองค้นหาด้วย message ตรงๆ (กรณีพิมพ์ชื่อเฉยๆ เช่น "นายสมชาย รักเงิน")
   const directResult = await searchFraudAccountFromDB(trimmedMessage);
   if (directResult) {
     return formatFraudResponse(directResult);
   }
-  
+
   // Find matching response จาก keywords
   for (const item of responses) {
     if (item.keywords.some((keyword) => lowerMessage.includes(keyword))) {
       return item.response;
     }
   }
-  
+
   return defaultResponse;
 }
 
-export function createMessage(role: "user" | "assistant", content: string): ChatMessage {
+export function createMessage(
+  role: "user" | "assistant",
+  content: string,
+): ChatMessage {
   return {
     id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     role,

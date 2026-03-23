@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { reports } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { count as sqlCount, desc, eq } from "drizzle-orm";
 
 type Report = typeof reports.$inferSelect;
 
@@ -53,8 +53,8 @@ export const reportRepo = {
    * นับจำนวน reports ทั้งหมด (สำหรับ generate case number)
    */
   async count(): Promise<number> {
-    const results = await db.select().from(reports);
-    return results.length;
+    const [{ value }] = await db.select({ value: sqlCount() }).from(reports);
+    return value;
   },
 
   /**
