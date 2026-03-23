@@ -7,16 +7,19 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Phone, KeyRound, ArrowLeft, Loader2, Shield } from "lucide-react";
-import { requestOTP } from "@/lib/actions/auth";
-
-// Mock OTP สำหรับ dev
-const MOCK_OTP = "123456";
+import { requestOTP, verifyOTP } from "@/lib/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  
+
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
@@ -27,10 +30,10 @@ export default function LoginPage() {
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone.trim()) return;
-    
+
     setIsLoading(true);
     setError("");
-    
+
     const result = await requestOTP(phone);
     if (result.success) {
       setPendingPhone(phone);
@@ -44,19 +47,18 @@ export default function LoginPage() {
   const handleOTPSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp.trim()) return;
-    
+
     setIsLoading(true);
     setError("");
-    
-    // Validate OTP client-side (ใน production จะ validate ที่ server)
-    if (otp !== MOCK_OTP) {
-      setError("รหัส OTP ไม่ถูกต้อง");
+
+    const verified = await verifyOTP(pendingPhone, otp);
+    if (!verified.success) {
+      setError(verified.message);
       setIsLoading(false);
       return;
     }
-    
+
     try {
-      // signIn โดยตรง - ไม่ต้อง validate OTP ใน NextAuth อีกแล้ว
       const result = await signIn("otp", {
         phone: pendingPhone,
         redirect: false,
@@ -70,7 +72,7 @@ export default function LoginPage() {
 
       // Refresh to get session
       router.refresh();
-      
+
       // Redirect
       router.push("/");
     } catch {
@@ -82,7 +84,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex flex-col bg-muted/30">
       <Navbar />
-      
+
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
@@ -91,8 +93,8 @@ export default function LoginPage() {
             </div>
             <CardTitle className="text-2xl">เข้าสู่ระบบ</CardTitle>
             <CardDescription>
-              {step === "phone" 
-                ? "กรอกเบอร์โทรศัพท์เพื่อรับรหัส OTP" 
+              {step === "phone"
+                ? "กรอกเบอร์โทรศัพท์เพื่อรับรหัส OTP"
                 : `กรอกรหัส OTP ที่ส่งไปยัง ${pendingPhone}`}
             </CardDescription>
           </CardHeader>
@@ -100,7 +102,9 @@ export default function LoginPage() {
             {step === "phone" ? (
               <form onSubmit={handlePhoneSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">เบอร์โทรศัพท์</label>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    เบอร์โทรศัพท์
+                  </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -113,12 +117,14 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
-                
-                <Button type="submit" className="w-full" disabled={isLoading || !phone.trim()}>
+
+                {error && <p className="text-sm text-destructive">{error}</p>}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading || !phone.trim()}
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -128,17 +134,13 @@ export default function LoginPage() {
                     "ขอรหัส OTP"
                   )}
                 </Button>
-                
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">
-                    Mock OTP: <span className="font-mono font-bold">123456</span>
-                  </p>
-                </div>
               </form>
             ) : (
               <form onSubmit={handleOTPSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">รหัส OTP</label>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    รหัส OTP
+                  </label>
                   <div className="relative">
                     <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -152,12 +154,14 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
-                
-                <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
+
+                {error && <p className="text-sm text-destructive">{error}</p>}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading || otp.length !== 6}
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -167,7 +171,7 @@ export default function LoginPage() {
                     "ยืนยัน"
                   )}
                 </Button>
-                
+
                 <Button
                   type="button"
                   variant="ghost"
@@ -187,7 +191,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <Footer />
     </main>
   );
