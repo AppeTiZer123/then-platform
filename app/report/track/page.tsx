@@ -14,7 +14,18 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import { mockReports, formatDate, formatCurrency } from "@/lib/mock-data";
+import { formatDate, formatCurrency } from "@/lib/mock-data";
+
+interface TrackResult {
+  id: string;
+  caseNumber: string;
+  status: string | null;
+  incidentDate: string | null;
+  incidentDetails: string | null;
+  damageAmount: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -55,22 +66,32 @@ const getStatusBadge = (status: string) => {
 export default function TrackReportPage() {
   const [caseNumber, setCaseNumber] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [result, setResult] = useState<
-    (typeof mockReports)[0] | null | undefined
-  >(undefined);
+  const [result, setResult] = useState<TrackResult | null | undefined>(
+    undefined,
+  );
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseNumber.trim()) return;
 
     setIsSearching(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const found = mockReports.find(
-      (r) => r.caseNumber.toLowerCase() === caseNumber.toLowerCase(),
-    );
-    setResult(found || null);
-    setIsSearching(false);
+    try {
+      const res = await fetch(
+        `/api/reports/track?caseNumber=${encodeURIComponent(caseNumber.trim().toUpperCase())}`,
+      );
+      if (res.status === 404) {
+        setResult(null);
+      } else if (res.ok) {
+        const json = await res.json();
+        setResult(json.data ?? null);
+      } else {
+        setResult(null);
+      }
+    } catch {
+      setResult(null);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   return (
@@ -115,30 +136,6 @@ export default function TrackReportPage() {
                   )}
                 </Button>
               </form>
-
-              <p className="text-xs text-muted-foreground mt-3">
-                ลองค้นหา:{" "}
-                <button
-                  onClick={() => setCaseNumber("RPT-2024-0001")}
-                  className="text-primary hover:underline"
-                >
-                  RPT-2024-0001
-                </button>
-                ,
-                <button
-                  onClick={() => setCaseNumber("RPT-2024-0002")}
-                  className="text-primary hover:underline ml-1"
-                >
-                  RPT-2024-0002
-                </button>
-                , หรือ
-                <button
-                  onClick={() => setCaseNumber("RPT-2024-0003")}
-                  className="text-primary hover:underline ml-1"
-                >
-                  RPT-2024-0003
-                </button>
-              </p>
             </CardContent>
           </Card>
 
@@ -217,11 +214,6 @@ export default function TrackReportPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-sm">มอบหมายเจ้าหน้าที่</p>
-                      {result.assignedOfficer && (
-                        <p className="text-xs text-muted-foreground">
-                          {result.assignedOfficer}
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -262,7 +254,9 @@ export default function TrackReportPage() {
                         ความเสียหาย:
                       </span>
                       <p className="font-medium text-destructive">
-                        {formatCurrency(result.damageAmount)}
+                        {formatCurrency(
+                          parseFloat(String(result.damageAmount || "0")),
+                        )}
                       </p>
                     </div>
                   </div>

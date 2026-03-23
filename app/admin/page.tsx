@@ -10,52 +10,20 @@ import {
   FileText,
   AlertTriangle,
   TrendingUp,
-  ArrowUp,
-  ArrowDown,
   Clock,
   CheckCircle,
 } from "lucide-react";
-import {
-  mockDashboardStats,
-  mockReports,
-  formatCurrency,
-} from "@/lib/mock-data";
 import Link from "next/link";
+import { getAllReports } from "@/lib/actions/reports";
+import { getAllFraudAccounts } from "@/lib/actions/fraud";
 
-const stats = [
-  {
-    title: "คดีทั้งหมด",
-    value: mockDashboardStats.totalReports,
-    change: "+12%",
-    changeType: "positive" as const,
-    icon: FileText,
-    color: "bg-blue-500",
-  },
-  {
-    title: "รอดำเนินการ",
-    value: mockDashboardStats.pendingReports,
-    change: "+5",
-    changeType: "negative" as const,
-    icon: Clock,
-    color: "bg-yellow-500",
-  },
-  {
-    title: "กำลังดำเนินการ",
-    value: mockDashboardStats.inProgressReports,
-    change: "+3",
-    changeType: "positive" as const,
-    icon: TrendingUp,
-    color: "bg-purple-500",
-  },
-  {
-    title: "บัญชีมิจฉาชีพ",
-    value: mockDashboardStats.totalFraudAccounts,
-    change: "+8",
-    changeType: "neutral" as const,
-    icon: AlertTriangle,
-    color: "bg-red-500",
-  },
-];
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -91,7 +59,72 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const [allReports, allFraudAccounts] = await Promise.all([
+    getAllReports(),
+    getAllFraudAccounts(),
+  ]);
+
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const dashboardStats = {
+    totalReports: allReports.length,
+    pendingReports: allReports.filter(
+      (r) => r.status === "pending" || r.status === "tip",
+    ).length,
+    inProgressReports: allReports.filter((r) => r.status === "in_progress")
+      .length,
+    completedReports: allReports.filter((r) => r.status === "completed").length,
+    totalFraudAccounts: allFraudAccounts.length,
+    totalDamageAmount: allReports.reduce(
+      (sum, r) => sum + parseFloat(String(r.damageAmount || "0")),
+      0,
+    ),
+    todayReports: allReports.filter(
+      (r) =>
+        r.createdAt &&
+        new Date(r.createdAt).toISOString().split("T")[0] === todayStr,
+    ).length,
+    weeklyReports: allReports.filter(
+      (r) => r.createdAt && new Date(r.createdAt) >= weekAgo,
+    ).length,
+  };
+
+  const stats = [
+    {
+      title: "คดีทั้งหมด",
+      value: dashboardStats.totalReports,
+      changeType: "neutral" as const,
+      icon: FileText,
+      color: "bg-blue-500",
+    },
+    {
+      title: "รอดำเนินการ",
+      value: dashboardStats.pendingReports,
+      changeType: "negative" as const,
+      icon: Clock,
+      color: "bg-yellow-500",
+    },
+    {
+      title: "กำลังดำเนินการ",
+      value: dashboardStats.inProgressReports,
+      changeType: "positive" as const,
+      icon: TrendingUp,
+      color: "bg-purple-500",
+    },
+    {
+      title: "บัญชีมิจฉาชีพ",
+      value: dashboardStats.totalFraudAccounts,
+      changeType: "neutral" as const,
+      icon: AlertTriangle,
+      color: "bg-red-500",
+    },
+  ];
+
+  const recentReports = allReports.slice(0, 5);
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -122,25 +155,6 @@ export default function AdminDashboard() {
                       <p className="text-2xl font-bold mt-1">
                         {stat.value.toLocaleString()}
                       </p>
-                      <div className="flex items-center gap-1 mt-2">
-                        {stat.changeType === "positive" && (
-                          <ArrowUp className="h-3 w-3 text-green-500" />
-                        )}
-                        {stat.changeType === "negative" && (
-                          <ArrowDown className="h-3 w-3 text-red-500" />
-                        )}
-                        <span
-                          className={`text-xs ${
-                            stat.changeType === "positive"
-                              ? "text-green-500"
-                              : stat.changeType === "negative"
-                                ? "text-red-500"
-                                : "text-muted-foreground"
-                          }`}
-                        >
-                          {stat.change} จากเดือนก่อน
-                        </span>
-                      </div>
                     </div>
                     <div className={`${stat.color} p-2.5 rounded-lg`}>
                       <Icon className="h-5 w-5 text-white" />
@@ -165,13 +179,13 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-muted/50 rounded-lg">
                 <p className="text-3xl font-bold text-primary">
-                  {mockDashboardStats.todayReports}
+                  {dashboardStats.todayReports}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">คดีวันนี้</p>
               </div>
               <div className="text-center p-4 bg-muted/50 rounded-lg">
                 <p className="text-3xl font-bold text-primary">
-                  {mockDashboardStats.weeklyReports}
+                  {dashboardStats.weeklyReports}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   คดีสัปดาห์นี้
@@ -179,7 +193,7 @@ export default function AdminDashboard() {
               </div>
               <div className="col-span-2 text-center p-4 bg-destructive/10 rounded-lg">
                 <p className="text-2xl font-bold text-destructive">
-                  {formatCurrency(mockDashboardStats.totalDamageAmount)}
+                  {formatCurrency(dashboardStats.totalDamageAmount)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   ความเสียหายรวม
@@ -208,7 +222,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <Badge variant="secondary">
-                  {mockDashboardStats.pendingReports}
+                  {dashboardStats.pendingReports}
                 </Badge>
               </div>
             </Link>
@@ -223,7 +237,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <Badge variant="secondary">
-                  {mockDashboardStats.inProgressReports}
+                  {dashboardStats.inProgressReports}
                 </Badge>
               </div>
             </Link>
@@ -238,7 +252,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <Badge variant="secondary">
-                  {mockDashboardStats.completedReports}
+                  {dashboardStats.completedReports}
                 </Badge>
               </div>
             </Link>
@@ -272,36 +286,49 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {mockReports.map((report) => (
-                  <tr
-                    key={report.id}
-                    className="border-b border-border last:border-0 hover:bg-muted/50"
-                  >
-                    <td className="py-3 px-4">
-                      <span className="font-medium text-sm">
-                        {report.caseNumber}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div>
-                        <p className="text-sm font-medium">
-                          {report.reporterName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {report.reporterPhone}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 hidden sm:table-cell">
-                      <span className="text-sm font-medium text-destructive">
-                        {formatCurrency(report.damageAmount)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {getStatusBadge(report.status)}
+                {recentReports.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="py-8 text-center text-muted-foreground"
+                    >
+                      ยังไม่มีคดีในระบบ
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentReports.map((report) => (
+                    <tr
+                      key={report.id}
+                      className="border-b border-border last:border-0 hover:bg-muted/50"
+                    >
+                      <td className="py-3 px-4">
+                        <span className="font-medium text-sm">
+                          {report.caseNumber}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {report.reporterName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {report.reporterPhone}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 hidden sm:table-cell">
+                        <span className="text-sm font-medium text-destructive">
+                          {formatCurrency(
+                            parseFloat(String(report.damageAmount || "0")),
+                          )}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {getStatusBadge(report.status || "")}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

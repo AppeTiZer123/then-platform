@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { 
-  LayoutDashboard, 
-  FileText, 
-  AlertTriangle, 
+import {
+  LayoutDashboard,
+  FileText,
+  AlertTriangle,
   MessageCircle,
   Settings,
   Menu,
@@ -15,7 +15,7 @@ import {
   LogOut,
   Key,
   Loader2,
-  Home
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -25,18 +25,17 @@ const sidebarLinks = [
   { href: "/admin/reports", label: "รายการแจ้งความ", icon: FileText },
   { href: "/admin/fraud-list", label: "บัญชีมิจฉาชีพ", icon: AlertTriangle },
   { href: "/admin/consults", label: "ปรึกษาปัญหา", icon: MessageCircle },
-  { href: "/admin/chat", label: "แชท", icon: MessageCircle },
   { href: "/admin/settings", label: "ตั้งค่า", icon: Settings },
   { href: "/", label: "กลับหน้าแรก", icon: Home },
 ];
 
 // Move SidebarContent outside the component to avoid re-creating on each render
-function SidebarContent({ 
+function SidebarContent({
   pathname,
   userName,
   onLinkClick,
-  onLogout
-}: { 
+  onLogout,
+}: {
   pathname: string;
   userName: string;
   onLinkClick?: () => void;
@@ -48,7 +47,9 @@ function SidebarContent({
       <div className="flex items-center gap-2 px-6 py-5 border-b border-sidebar-border">
         <Shield className="h-8 w-8 text-sidebar-primary" />
         <div>
-          <span className="text-lg font-bold text-sidebar-foreground">THEN</span>
+          <span className="text-lg font-bold text-sidebar-foreground">
+            THEN
+          </span>
           <p className="text-xs text-sidebar-foreground/60">Admin Panel</p>
         </div>
       </div>
@@ -58,7 +59,7 @@ function SidebarContent({
         {sidebarLinks.map((link) => {
           const Icon = link.icon;
           const isActive = pathname === link.href;
-          
+
           return (
             <Link
               key={link.href}
@@ -115,7 +116,6 @@ export default function AdminLayout({
     router.push("/");
   };
 
-
   // Close menu when clicking outside or pressing Escape
   useEffect(() => {
     if (!menuOpen) return;
@@ -164,8 +164,8 @@ export default function AdminLayout({
     <div className="min-h-screen flex bg-background">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-sidebar border-r border-sidebar-border">
-        <SidebarContent 
-          pathname={pathname} 
+        <SidebarContent
+          pathname={pathname}
           userName={user?.name || user?.phone || "Admin"}
           onLogout={handleLogout}
         />
@@ -173,9 +173,12 @@ export default function AdminLayout({
 
       {/* Mobile Sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-64 bg-sidebar border-sidebar-border">
-          <SidebarContent 
-            pathname={pathname} 
+        <SheetContent
+          side="left"
+          className="p-0 w-64 bg-sidebar border-sidebar-border"
+        >
+          <SidebarContent
+            pathname={pathname}
             userName={user?.name || user?.phone || "Admin"}
             onLinkClick={() => setSidebarOpen(false)}
             onLogout={handleLogout}
@@ -200,7 +203,7 @@ export default function AdminLayout({
               {sidebarLinks.find((l) => l.href === pathname)?.label || "Admin"}
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground hidden sm:block">
               {user?.name || user?.phone}
@@ -220,21 +223,35 @@ export default function AdminLayout({
               </button>
 
               {menuOpen && (
-                <div ref={menuRef} className="absolute right-0 mt-2 w-64 bg-popover rounded-lg shadow-lg ring-1 ring-black/5 z-50">
+                <div
+                  ref={menuRef}
+                  className="absolute right-0 mt-2 w-64 bg-popover rounded-lg shadow-lg ring-1 ring-black/5 z-50"
+                >
                   <div className="p-3 border-b border-muted-foreground/10">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
                         {user?.name?.[0]?.toUpperCase() || "A"}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold">Hi! {user?.name || "Admin"}</p>
-                        <p className="text-xs text-muted-foreground">Login time : {new Date().toLocaleString('th-TH', { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' })}</p>
+                        <p className="text-sm font-semibold">
+                          Hi! {user?.name || "Admin"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Login time :{" "}
+                          {new Date().toLocaleString("th-TH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })}
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="p-2 space-y-1">
-
                     <Link
                       href="/"
                       onClick={() => setMenuOpen(false)}
@@ -255,7 +272,10 @@ export default function AdminLayout({
 
                     <div className="pt-2 border-t border-muted-foreground/10 px-3">
                       <button
-                        onClick={() => { setMenuOpen(false); handleLogout(); }}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          handleLogout();
+                        }}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded bg-destructive/10 text-sm text-destructive hover:brightness-95"
                       >
                         <LogOut className="w-4 h-4" />
@@ -270,9 +290,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">
-          {children}
-        </main>
+        <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );

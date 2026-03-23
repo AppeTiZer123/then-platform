@@ -15,7 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { Search, Plus, Edit, Trash2, AlertTriangle } from "lucide-react";
 import { mockFraudAccounts, formatCurrency } from "@/lib/mock-data";
-import { getAllFraudAccounts } from "@/lib/actions/fraud";
+import {
+  getAllFraudAccounts,
+  createFraudAccount,
+  updateFraudAccount,
+  deleteFraudAccount,
+} from "@/lib/actions/fraud";
 
 // Type สำหรับ fraud account
 interface FraudAccount {
@@ -120,16 +125,24 @@ export default function FraudListPage() {
     setIsEditOpen(true);
   };
 
-  const handleEditSave = (e: React.FormEvent) => {
+  const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAccount) return;
-    // TODO: เพิ่ม Server Action สำหรับ update database
-    setFraudAccountsList((prev) =>
-      prev.map((a) =>
-        a.id === selectedAccount.id
-          ? {
-              ...a,
-              ...{
+    const result = await updateFraudAccount(selectedAccount.id, {
+      accountNumber: editForm.accountNumber,
+      bankName: editForm.bankName,
+      accountName: editForm.accountName,
+      phoneNumber: editForm.phoneNumber,
+      reportCount: Number(editForm.reportCount),
+      totalDamage: Number(editForm.totalDamage),
+      status: editForm.status || undefined,
+    });
+    if (result.success) {
+      setFraudAccountsList((prev) =>
+        prev.map((a) =>
+          a.id === selectedAccount.id
+            ? {
+                ...a,
                 accountNumber: editForm.accountNumber,
                 bankName: editForm.bankName,
                 accountName: editForm.accountName,
@@ -137,13 +150,15 @@ export default function FraudListPage() {
                 reportCount: Number(editForm.reportCount),
                 totalDamage: String(editForm.totalDamage),
                 status: editForm.status,
-              },
-            }
-          : a,
-      ),
-    );
-    setIsEditOpen(false);
-    setSelectedAccount(null);
+              }
+            : a,
+        ),
+      );
+      setIsEditOpen(false);
+      setSelectedAccount(null);
+    } else {
+      alert(`เกิดข้อผิดพลาด: ${result.error || "ไม่สามารถบันทึกได้"}`);
+    }
   };
 
   const openDelete = (account: FraudAccount) => {
@@ -151,14 +166,18 @@ export default function FraudListPage() {
     setIsDeleteOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!selectedAccount) return;
-    // TODO: เพิ่ม Server Action สำหรับ delete จาก database
-    setFraudAccountsList((prev) =>
-      prev.filter((a) => a.id !== selectedAccount.id),
-    );
-    setIsDeleteOpen(false);
-    setSelectedAccount(null);
+    const result = await deleteFraudAccount(selectedAccount.id);
+    if (result.success) {
+      setFraudAccountsList((prev) =>
+        prev.filter((a) => a.id !== selectedAccount.id),
+      );
+      setIsDeleteOpen(false);
+      setSelectedAccount(null);
+    } else {
+      alert(`เกิดข้อผิดพลาด: ${result.error || "ไม่สามารถลบได้"}`);
+    }
   };
 
   return (
@@ -187,34 +206,38 @@ export default function FraudListPage() {
             </DialogHeader>
             <form
               className="space-y-4 mt-4"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                // add new account
-                const newAccount: FraudAccount = {
-                  id: String(Date.now()),
+                const result = await createFraudAccount({
                   accountNumber: addForm.accountNumber,
                   bankName: addForm.bankName,
-                  accountName: addForm.accountName || null,
-                  phoneNumber: addForm.phoneNumber || null,
+                  accountName: addForm.accountName,
+                  phoneNumber: addForm.phoneNumber,
                   reportCount: Number(addForm.reportCount) || 0,
-                  totalDamage: String(addForm.totalDamage) || "0",
-                  lastReportedAt: new Date(),
-                  status: addForm.status,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                };
-                setFraudAccountsList((prev) => [newAccount, ...prev]);
-                setIsAddDialogOpen(false);
-                setAddForm({
-                  accountIdSelection: "",
-                  accountNumber: "",
-                  bankName: "",
-                  accountName: "",
-                  phoneNumber: "",
-                  reportCount: 0,
-                  totalDamage: 0,
-                  status: "pending",
+                  totalDamage: Number(addForm.totalDamage) || 0,
+                  status: addForm.status || "pending",
                 });
+                if (result.success && result.account) {
+                  setFraudAccountsList((prev) => [
+                    result.account as FraudAccount,
+                    ...prev,
+                  ]);
+                  setIsAddDialogOpen(false);
+                  setAddForm({
+                    accountIdSelection: "",
+                    accountNumber: "",
+                    bankName: "",
+                    accountName: "",
+                    phoneNumber: "",
+                    reportCount: 0,
+                    totalDamage: 0,
+                    status: "pending",
+                  });
+                } else {
+                  alert(
+                    `เกิดข้อผิดพลาด: ${result.error || "ไม่สามารถเพิ่มบัญชีได้"}`,
+                  );
+                }
               }}
             >
               <div>
@@ -241,7 +264,7 @@ export default function FraudListPage() {
                   }
                 >
                   <option value="">-- เลือกธนาคาร --</option>
-                  {[...new Set(mockFraudAccounts.map((a) => a.bankName))].map(
+                  {[...new Set(fraudAccountsList.map((a) => a.bankName))].map(
                     (b) => (
                       <option key={b} value={b}>
                         {b}
