@@ -55,15 +55,31 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-primary-foreground/80">
                 <Phone className="h-4 w-4" />
-                <span>1441 (สายด่วนตำรวจ)</span>
+                <a
+                  href="tel:0979966908"
+                  className="hover:text-primary-foreground transition-colors"
+                >
+                  097-996-6908
+                </a>
               </li>
               <li className="flex items-center gap-2 text-primary-foreground/80">
                 <Mail className="h-4 w-4" />
-                <span>contact@then.go.th</span>
+                <a
+                  href="mailto:contact@meyameya.me"
+                  className="hover:text-primary-foreground transition-colors"
+                >
+                  contact@meyameya.me
+                </a>
               </li>
               <li className="flex items-start gap-2 text-primary-foreground/80">
                 <MapPin className="h-4 w-4 mt-0.5" />
-                <span>กองบัญชาการตำรวจสืบสวนสอบสวนอาชญากรรมทางเทคโนโลยี</span>
+                <span>
+                  บริษัท มียามียา จำกัด
+                  <br />
+                  233/77 Sanphawut Rd, South Bangna,
+                  <br />
+                  Bangna, Bangkok, Thailand 10260
+                </span>
               </li>
             </ul>
           </div>
