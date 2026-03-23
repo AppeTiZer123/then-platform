@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { AuthSessionProvider } from "@/components/auth-session-provider";
+import { FloatingConsultWidget } from "@/components/floating-consult-widget";
 
 const notoSansThai = Noto_Sans_Thai({
   variable: "--font-noto-sans-thai",
@@ -11,7 +12,8 @@ const notoSansThai = Noto_Sans_Thai({
 
 export const metadata: Metadata = {
   title: "ระบบรับแจ้งความและปรึกษาออนไลน์ | THEN",
-  description: "ระบบรับแจ้งเรื่องการถูกหลอกลวงออนไลน์ ตรวจสอบบัญชีมิจฉาชีพ และปรึกษาเจ้าหน้าที่",
+  description:
+    "ระบบรับแจ้งเรื่องการถูกหลอกลวงออนไลน์ ตรวจสอบบัญชีมิจฉาชีพ และปรึกษาเจ้าหน้าที่",
 };
 
 export default function RootLayout({
@@ -24,9 +26,9 @@ export default function RootLayout({
       <body className={`${notoSansThai.variable} font-sans antialiased`}>
         <AuthSessionProvider>
           {children}
+          <FloatingConsultWidget />
         </AuthSessionProvider>
       </body>
     </html>
   );
 }
-

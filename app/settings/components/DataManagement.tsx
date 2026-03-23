@@ -19,8 +19,50 @@ import {
 
 type ActionType = "backup" | "import" | "export" | null;
 
+async function exportReportsAsCSV() {
+  const res = await fetch("/api/admin/reports");
+  if (!res.ok) throw new Error("Failed to fetch reports");
+  const json = await res.json();
+  const reports: Record<string, unknown>[] = json.data || [];
+
+  const headers = [
+    "caseNumber",
+    "reporterName",
+    "reporterPhone",
+    "incidentDate",
+    "damageAmount",
+    "status",
+    "createdAt",
+  ];
+  const rows = reports.map((r) =>
+    headers.map((h) => JSON.stringify(r[h] ?? "")).join(","),
+  );
+  const csv = [headers.join(","), ...rows].join("\n");
+
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `then-reports-${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function DataManagement() {
   const [action, setAction] = useState<ActionType>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportReportsAsCSV();
+      setAction(null);
+    } catch {
+      alert("เกิดข้อผิดพลาดในการส่งออกข้อมูล กรุณาลองใหม่");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <>
@@ -39,7 +81,6 @@ export default function DataManagement() {
                 เริ่ม
               </Button>
             </div>
-
             <div className="flex items-center justify-between">
               <div className="text-sm">นำเข้า/ส่งออกข้อมูล</div>
               <div className="flex gap-2">
@@ -70,55 +111,28 @@ export default function DataManagement() {
             {action === "backup"
               ? "สำรองข้อมูล"
               : action === "import"
-              ? "นำเข้า"
-              : action === "export"
-              ? "ส่งออก"
-              : "ตัวอย่าง"}
+                ? "นำเข้าข้อมูล"
+                : action === "export"
+                  ? "ส่งออกข้อมูล"
+                  : "จัดการข้อมูล"}
           </DialogTitle>
           <DialogDescription className="mb-4">
             {action === "backup" &&
-              "ขั้นตอนการสำรองข้อมูล: สร้างไฟล์ .zip ที่ประกอบด้วยฐานข้อมูลและไฟล์สื่อ เพื่อดาวน์โหลดเก็บสำรอง"}
+              "สำรองข้อมูลระบบ (ยังไม่รองรับ — ต้องตั้งค่า Backup storage ก่อน)"}
             {action === "import" &&
-              "การนำเข้า: อัปโหลดไฟล์ CSV/JSON  และแสดงตัวอย่างแถวข้อมูลก่อนนำเข้า"}
+              "นำเข้าข้อมูล (ยังไม่รองรับ — กรุณาติดต่อ DBA เพื่อ import โดยตรง)"}
             {action === "export" &&
-              "การส่งออก: เลือกรูปแบบไฟล์ (CSV/JSON) และดูตัวอย่างข้อมูลที่จะถูกส่งออก"}
+              "ส่งออกรายงานทั้งหมดจากฐานข้อมูลเป็นไฟล์ CSV"}
           </DialogDescription>
 
-          {action === "backup" && (
+          {(action === "backup" || action === "import") && (
             <div className="space-y-3">
-              <div className="text-sm">ชื่อไฟล์ที่สร้าง:</div>
-              <div className="rounded-md border border-border bg-slate-50 p-3 font-mono text-sm">
-                then-backup-2025-12-19.zip
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                ฟีเจอร์นี้ยังไม่พร้อมใช้งานในเวอร์ชันปัจจุบัน
               </div>
               <div className="flex gap-2 justify-end pt-2">
                 <Button variant="outline" onClick={() => setAction(null)}>
                   ปิด
-                </Button>
-                <Button
-                  onClick={() =>
-                    alert(
-                      "ดาวน์โหลดตัวอย่างสำรอง: then-backup-2025-12-19.zip (จำลอง)"
-                    )
-                  }
-                >
-                  ดาวน์โหลด
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {action === "import" && (
-            <div className="space-y-3">
-              <div className="text-sm">ตัวอย่างไฟล์ (CSV):</div>
-              <pre className="rounded-md border border-border bg-slate-50 p-3 text-sm overflow-auto whitespace-pre-wrap break-words font-mono">
-                id,name,email 1,สมชาย,sch@sample.test 2,สมหญิง,sh@sample.test
-              </pre>
-              <div className="flex gap-2 justify-end pt-2">
-                <Button variant="outline" onClick={() => setAction(null)}>
-                  ปิด
-                </Button>
-                <Button onClick={() => alert("อัปโหลดตัวอย่าง (จำลอง)")}>
-                  อัปโหลด
                 </Button>
               </div>
             </div>
@@ -126,20 +140,16 @@ export default function DataManagement() {
 
           {action === "export" && (
             <div className="space-y-3">
-              <div className="text-sm">ตัวเลือกการส่งออก:</div>
-              <ul className="list-disc pl-5 text-sm">
-                <li>ฟิลด์: id, name, email</li>
-                <li>รูปแบบไฟล์: CSV</li>
-                <li>ตัวอย่างแถว: 1,สมชาย,sch@sample.test</li>
-              </ul>
+              <div className="text-sm text-muted-foreground">
+                ไฟล์ CSV จะประกอบด้วย:หมายเลขคดี, ชื่อผู้แจ้ง, เบอร์โทร,
+                วันเกิดเหตุ, ความเสียหาย, สถานะ, วันที่แจ้ง
+              </div>
               <div className="flex gap-2 justify-end pt-2">
                 <Button variant="outline" onClick={() => setAction(null)}>
-                  ปิด
+                  ยกเลิก
                 </Button>
-                <Button
-                  onClick={() => alert("ดาวน์โหลดตัวอย่างส่งออก (จำลอง)")}
-                >
-                  ดาวน์โหลด
+                <Button onClick={handleExport} disabled={isExporting}>
+                  {isExporting ? "กำลังส่งออก..." : "ดาวน์โหลด CSV"}
                 </Button>
               </div>
             </div>

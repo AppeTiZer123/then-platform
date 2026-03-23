@@ -23,22 +23,26 @@ export function Footer() {
             <h3 className="font-semibold mb-4">ลิงก์ด่วน</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/report" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                <Link
+                  href="/report"
+                  className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                >
                   แจ้งความออนไลน์
                 </Link>
               </li>
               <li>
-                <Link href="/report/track" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                <Link
+                  href="/report/track"
+                  className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                >
                   ติดตามสถานะคดี
                 </Link>
               </li>
               <li>
-                <Link href="/consult" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
-                  ปรึกษาเจ้าหน้าที่
-                </Link>
-              </li>
-              <li>
-                <Link href="/#fraud-check" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                <Link
+                  href="/#fraud-check"
+                  className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+                >
                   ตรวจสอบมิจฉาชีพ
                 </Link>
               </li>
@@ -67,7 +71,10 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-primary-foreground/20 mt-8 pt-8 text-center text-sm text-primary-foreground/60">
-          <p>© {new Date().getFullYear()} THEN - ระบบรับแจ้งความและปรึกษาออนไลน์. สงวนลิขสิทธิ์.</p>
+          <p>
+            © {new Date().getFullYear()} THEN - ระบบรับแจ้งความและปรึกษาออนไลน์.
+            สงวนลิขสิทธิ์.
+          </p>
           <p className="mt-1">พัฒนาเป็นโปรเจกต์จบการศึกษา</p>
         </div>
       </div>
