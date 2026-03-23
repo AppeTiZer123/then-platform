@@ -31,7 +31,6 @@ export function FloatingConsultWidget() {
 
   const isHiddenRoute =
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/consult") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/unauthorized");
 
