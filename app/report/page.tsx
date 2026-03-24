@@ -7,31 +7,39 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Send, 
-  User, 
-  MessageSquareText, 
-  Upload, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Send,
+  User,
+  MessageSquareText,
+  Upload,
   Check,
   AlertCircle,
   Bot,
   FileText,
   Sparkles,
   ImagePlus,
-  Lock
+  Lock,
 } from "lucide-react";
 
 export default function ReportPage() {
   const { data: session, status } = useSession();
   const isAuthenticated = !!session?.user;
   const user = session?.user;
-  
-  const [step, setStep] = useState<"contact" | "story" | "processing" | "complete">("contact");
+
+  const [step, setStep] = useState<
+    "contact" | "story" | "processing" | "complete"
+  >("contact");
   const [contactInfo, setContactInfo] = useState(() => ({
     name: user?.name || "",
     phone: user?.phone || "",
-    email: ""
+    email: "",
   }));
   const [story, setStory] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
@@ -72,12 +80,14 @@ export default function ReportPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button asChild className="w-full">
-                <Link href="/login">
-                  เข้าสู่ระบบ
-                </Link>
+                <Link href="/login">เข้าสู่ระบบ</Link>
               </Button>
               <p className="text-xs text-muted-foreground">
-                หรือลองใช้ <Link href="/ai-chat" className="text-primary underline">AI ให้คำปรึกษา</Link> โดยไม่ต้องเข้าสู่ระบบ
+                หรือลองใช้{" "}
+                <Link href="/ai-chat" className="text-primary underline">
+                  AI ให้คำปรึกษา
+                </Link>{" "}
+                โดยไม่ต้องเข้าสู่ระบบ
               </p>
             </CardContent>
           </Card>
@@ -96,10 +106,10 @@ export default function ReportPage() {
 
   const handleStorySubmit = async () => {
     if (!story.trim()) return;
-    
+
     setStep("processing");
     setProcessingStatus("กำลังวิเคราะห์ข้อมูลจากเรื่องเล่า...");
-    
+
     try {
       // 1. Extract data using AI
       const extractResponse = await fetch("/api/ai/extract-incident", {
@@ -109,9 +119,9 @@ export default function ReportPage() {
       });
 
       if (!extractResponse.ok) throw new Error("Failed to extract data");
-      
+
       const { data: extractedData } = await extractResponse.json();
-      
+
       setProcessingStatus("กำลังสร้างเอกสาร PDF...");
 
       // 2. Generate PDF
@@ -126,8 +136,22 @@ export default function ReportPage() {
       const pdfBlob = await pdfResponse.blob();
       const url = URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
-      
-      setReferenceNumber(`RPT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`);
+
+      setProcessingStatus("กำลังบันทึกข้อมูลเข้าระบบ...");
+
+      // 3. Save report to DB
+      const saveResponse = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extractedData, contactInfo }),
+      });
+
+      const saveData = await saveResponse.json();
+      const caseNumber = saveData.ok
+        ? saveData.caseNumber
+        : `RPT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
+
+      setReferenceNumber(caseNumber);
       setStep("complete");
     } catch (error) {
       console.error("Error:", error);
@@ -141,35 +165,46 @@ export default function ReportPage() {
     return (
       <main className="min-h-screen flex flex-col bg-muted/30">
         <Navbar />
-        
+
         <div className="flex-1 container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-2xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 mb-4">
                 <Bot className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium text-primary">AI ช่วยสร้างเอกสาร</span>
+                <span className="text-sm font-medium text-primary">
+                  AI ช่วยสร้างเอกสาร
+                </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
                 เล่าเรื่องราวของคุณ
               </h1>
               <p className="text-muted-foreground max-w-lg mx-auto">
-                แค่เล่าเหตุการณ์ที่เกิดขึ้น AI จะช่วยวิเคราะห์และสร้างเอกสารใบแจ้งความให้คุณอัตโนมัติ
+                แค่เล่าเหตุการณ์ที่เกิดขึ้น AI
+                จะช่วยวิเคราะห์และสร้างเอกสารใบแจ้งความให้คุณอัตโนมัติ
               </p>
             </div>
 
             {/* How it works */}
             <div className="grid grid-cols-3 gap-4 mb-8">
               <div className="text-center p-4 rounded-lg bg-primary/5">
-                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">1</div>
-                <p className="text-xs text-muted-foreground">กรอกข้อมูลติดต่อ</p>
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                  1
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  กรอกข้อมูลติดต่อ
+                </p>
               </div>
               <div className="text-center p-4 rounded-lg bg-muted/50">
-                <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">2</div>
+                <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                  2
+                </div>
                 <p className="text-xs text-muted-foreground">เล่าเรื่องราว</p>
               </div>
               <div className="text-center p-4 rounded-lg bg-muted/50">
-                <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">3</div>
+                <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                  3
+                </div>
                 <p className="text-xs text-muted-foreground">รับเอกสาร</p>
               </div>
             </div>
@@ -187,30 +222,48 @@ export default function ReportPage() {
               <CardContent>
                 <form onSubmit={handleContactSubmit} className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">ชื่อ-นามสกุล *</label>
-                    <Input 
+                    <label className="text-sm font-medium mb-1.5 block">
+                      ชื่อ-นามสกุล *
+                    </label>
+                    <Input
                       placeholder="นายสมชาย ใจดี"
                       value={contactInfo.name}
-                      onChange={(e) => setContactInfo({ ...contactInfo, name: e.target.value })}
+                      onChange={(e) =>
+                        setContactInfo({ ...contactInfo, name: e.target.value })
+                      }
                       required
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">เบอร์โทรศัพท์ *</label>
-                    <Input 
+                    <label className="text-sm font-medium mb-1.5 block">
+                      เบอร์โทรศัพท์ *
+                    </label>
+                    <Input
                       placeholder="081-234-5678"
                       value={contactInfo.phone}
-                      onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
+                      onChange={(e) =>
+                        setContactInfo({
+                          ...contactInfo,
+                          phone: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">อีเมล (ไม่บังคับ)</label>
-                    <Input 
+                    <label className="text-sm font-medium mb-1.5 block">
+                      อีเมล (ไม่บังคับ)
+                    </label>
+                    <Input
                       type="email"
                       placeholder="email@example.com"
                       value={contactInfo.email}
-                      onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                      onChange={(e) =>
+                        setContactInfo({
+                          ...contactInfo,
+                          email: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <Button type="submit" className="w-full" size="lg">
@@ -222,7 +275,7 @@ export default function ReportPage() {
             </Card>
           </div>
         </div>
-        
+
         <Footer />
       </main>
     );
@@ -233,7 +286,7 @@ export default function ReportPage() {
     return (
       <main className="min-h-screen flex flex-col bg-muted/30">
         <Navbar />
-        
+
         <div className="flex-1 container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-2xl mx-auto">
             {/* Header */}
@@ -242,7 +295,8 @@ export default function ReportPage() {
                 เล่าเหตุการณ์ที่เกิดขึ้น
               </h1>
               <p className="text-muted-foreground">
-                เล่าให้ละเอียดที่สุดเท่าที่จะทำได้ AI จะช่วยสรุปและสร้างเอกสารให้
+                เล่าให้ละเอียดที่สุดเท่าที่จะทำได้ AI
+                จะช่วยสรุปและสร้างเอกสารให้
               </p>
             </div>
 
@@ -252,14 +306,22 @@ export default function ReportPage() {
                 <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center mx-auto mb-2">
                   <Check className="h-5 w-5" />
                 </div>
-                <p className="text-xs text-green-700 dark:text-green-400">ข้อมูลติดต่อ</p>
+                <p className="text-xs text-green-700 dark:text-green-400">
+                  ข้อมูลติดต่อ
+                </p>
               </div>
               <div className="text-center p-4 rounded-lg bg-primary/5">
-                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">2</div>
-                <p className="text-xs text-primary font-medium">เล่าเรื่องราว</p>
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                  2
+                </div>
+                <p className="text-xs text-primary font-medium">
+                  เล่าเรื่องราว
+                </p>
               </div>
               <div className="text-center p-4 rounded-lg bg-muted/50">
-                <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">3</div>
+                <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                  3
+                </div>
                 <p className="text-xs text-muted-foreground">รับเอกสาร</p>
               </div>
             </div>
@@ -271,12 +333,13 @@ export default function ReportPage() {
                   เล่าเรื่องราวของคุณ
                 </CardTitle>
                 <CardDescription>
-                  อธิบายเหตุการณ์ที่เกิดขึ้น เช่น ถูกหลอกอย่างไร ผ่านช่องทางไหน เสียเงินไปเท่าไหร่
+                  อธิบายเหตุการณ์ที่เกิดขึ้น เช่น ถูกหลอกอย่างไร ผ่านช่องทางไหน
+                  เสียเงินไปเท่าไหร่
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <textarea 
+                  <textarea
                     className="w-full min-h-[200px] rounded-md border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                     placeholder="ตัวอย่าง: เมื่อวันที่ 5 ธันวาคม 2567 ผมเห็นโฆษณาขายโทรศัพท์มือถือราคาถูกในเพจ Facebook ชื่อ 'ร้านโทรศัพท์ราคาถูก' ราคา 5,000 บาท จึงได้ติดต่อไปทาง Line และโอนเงินให้ จำนวน 5,000 บาท ไปยังบัญชี xxx-x-xxxxx-x ธนาคารกสิกรไทย ชื่อบัญชี นายXXX XXX หลังจากโอนเงินแล้ว ผู้ขายก็บล็อคและหายไป ไม่สามารถติดต่อได้..."
                     value={story}
@@ -293,7 +356,9 @@ export default function ReportPage() {
                       <ul className="text-muted-foreground space-y-1">
                         <li>• ระบุวันเวลาที่เกิดเหตุ</li>
                         <li>• บอกจำนวนเงินที่เสียไป</li>
-                        <li>• ระบุช่องทางการติดต่อ (Facebook, Line, เบอร์โทร)</li>
+                        <li>
+                          • ระบุช่องทางการติดต่อ (Facebook, Line, เบอร์โทร)
+                        </li>
                         <li>• หมายเลขบัญชีที่โอนเงินไป</li>
                         <li>• ลำดับเหตุการณ์ที่เกิดขึ้น</li>
                       </ul>
@@ -304,7 +369,9 @@ export default function ReportPage() {
                 {/* Upload Evidence */}
                 <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
                   <ImagePlus className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm font-medium mb-1">แนบรูปหลักฐาน (ไม่บังคับ)</p>
+                  <p className="text-sm font-medium mb-1">
+                    แนบรูปหลักฐาน (ไม่บังคับ)
+                  </p>
                   <p className="text-xs text-muted-foreground mb-3">
                     ภาพหน้าจอการสนทนา, หลักฐานการโอนเงิน
                   </p>
@@ -315,12 +382,16 @@ export default function ReportPage() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <Button variant="outline" onClick={() => setStep("contact")} className="flex-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep("contact")}
+                    className="flex-1"
+                  >
                     ย้อนกลับ
                   </Button>
-                  <Button 
-                    onClick={handleStorySubmit} 
-                    disabled={!story.trim()} 
+                  <Button
+                    onClick={handleStorySubmit}
+                    disabled={!story.trim()}
                     className="flex-1"
                   >
                     <Bot className="mr-2 h-4 w-4" />
@@ -331,7 +402,7 @@ export default function ReportPage() {
             </Card>
           </div>
         </div>
-        
+
         <Footer />
       </main>
     );
@@ -342,7 +413,7 @@ export default function ReportPage() {
     return (
       <main className="min-h-screen flex flex-col bg-muted/30">
         <Navbar />
-        
+
         <div className="flex-1 flex items-center justify-center px-4">
           <Card className="max-w-md w-full text-center">
             <CardContent className="pt-12 pb-12">
@@ -357,7 +428,9 @@ export default function ReportPage() {
                 {processingStatus}
               </p>
               <div className="mt-6 space-y-2 text-left max-w-xs mx-auto">
-                <div className={`flex items-center gap-2 text-sm ${processingStatus.includes("วิเคราะห์") ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                <div
+                  className={`flex items-center gap-2 text-sm ${processingStatus.includes("วิเคราะห์") ? "text-primary font-medium" : "text-muted-foreground"}`}
+                >
                   {processingStatus.includes("วิเคราะห์") ? (
                     <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                   ) : (
@@ -365,7 +438,9 @@ export default function ReportPage() {
                   )}
                   <span>วิเคราะห์ข้อมูลจากเรื่องเล่า</span>
                 </div>
-                <div className={`flex items-center gap-2 text-sm ${processingStatus.includes("สร้างเอกสาร") ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                <div
+                  className={`flex items-center gap-2 text-sm ${processingStatus.includes("สร้างเอกสาร") ? "text-primary font-medium" : "text-muted-foreground"}`}
+                >
                   {processingStatus.includes("สร้างเอกสาร") ? (
                     <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                   ) : processingStatus.includes("วิเคราะห์") ? (
@@ -379,7 +454,7 @@ export default function ReportPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         <Footer />
       </main>
     );
@@ -406,35 +481,38 @@ export default function ReportPage() {
             <CardContent className="space-y-4">
               <div className="bg-muted rounded-lg p-4">
                 <p className="text-sm text-muted-foreground">หมายเลขอ้างอิง</p>
-                <p className="text-xl font-bold text-primary">{referenceNumber}</p>
+                <p className="text-xl font-bold text-primary">
+                  {referenceNumber}
+                </p>
               </div>
-              
+
               {pdfUrl && (
                 <Button className="w-full" size="lg" asChild>
-                  <a href={pdfUrl} download={`ใบแจ้งความ_${referenceNumber}.pdf`}>
+                  <a
+                    href={pdfUrl}
+                    download={`ใบแจ้งความ_${referenceNumber}.pdf`}
+                  >
                     <Upload className="mr-2 h-4 w-4 rotate-180" />
                     ดาวน์โหลดเอกสาร PDF
                   </a>
                 </Button>
               )}
-              
+
               <div className="bg-primary/5 rounded-lg p-4 text-left mt-4">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
                   <div className="text-sm">
                     <p className="font-medium mb-1">ขั้นตอนถัดไป:</p>
                     <p className="text-muted-foreground">
-                      คุณสามารถนำไฟล์ PDF นี้ไปพิมพ์เพื่อใช้ประกอบการแจ้งความที่สถานีตำรวจได้ทันที
+                      คุณสามารถนำไฟล์ PDF
+                      นี้ไปพิมพ์เพื่อใช้ประกอบการแจ้งความที่สถานีตำรวจได้ทันที
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button variant="outline" className="flex-1" asChild>
-                  <Link href="/report/track">ติดตามสถานะ</Link>
-                </Button>
-                <Button variant="ghost" className="flex-1" asChild>
+              <div className="pt-4">
+                <Button variant="outline" className="w-full" asChild>
                   <Link href="/">กลับหน้าแรก</Link>
                 </Button>
               </div>
@@ -447,5 +525,4 @@ export default function ReportPage() {
   }
 
   return null; // Should not reach here
-
 }
