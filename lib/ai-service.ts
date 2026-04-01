@@ -11,8 +11,9 @@ export interface ChatMessage {
 }
 
 // Regex patterns สำหรับตรวจจับข้อมูลที่ต้องค้นหา
-const ACCOUNT_NUMBER_PATTERN = /\d{3}-?\d-?\d{5}-?\d|\d{10,}/g;
-const PHONE_PATTERN = /0\d{1,2}[-\s]?\d{3}[-\s]?\d{4}|0\d{8,9}/g;
+// ไม่ใช้ global flag เพื่อหลีกเลี่ยง lastIndex state bug
+const ACCOUNT_NUMBER_PATTERN = /\d{3}-?\d-?\d{5}-?\d|\d{10,}/;
+const PHONE_PATTERN = /0\d{1,2}[-\s]?\d{3}[-\s]?\d{4}|0\d{8,9}/;
 
 // ดึง query จาก message สำหรับค้นหามิจฉาชีพ
 function extractSearchQuery(message: string): string | null {

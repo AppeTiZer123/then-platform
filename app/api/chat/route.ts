@@ -18,27 +18,46 @@ const SYSTEM_PROMPT = `คุณเป็น AI ผู้ช่วยของ�
 6. แนะนำให้ใช้ฟีเจอร์ "แจ้งเบาะแส" ของระบบ หากผู้ใช้ต้องการรายงานมิจฉาชีพ`;
 
 // Regex patterns สำหรับตรวจจับข้อมูลที่ต้องค้นหา
-const ACCOUNT_NUMBER_PATTERN = /\d{3}-?\d-?\d{5}-?\d|\d{10,}/g;
-const PHONE_PATTERN = /0\d{1,2}[-\s]?\d{3}[-\s]?\d{4}|0\d{8,9}/g;
+// ไม่ใช้ global flag เพื่อหลีกเลี่ยง lastIndex state bug
+const ACCOUNT_NUMBER_PATTERN = /\d{3}-?\d-?\d{5}-?\d|\d{10,}/;
+const PHONE_PATTERN = /0\d{1,2}[-\s]?\d{3}[-\s]?\d{4}|0\d{8,9}/;
+const NAME_PATTERNS = [
+  /(?:ตรวจสอบ|ค้นหา|เช็ค|เช็ก|หา)(?:ชื่อ|บัญชี|คน|มิจ)?[\s:]+(.+)/i,
+  /ชื่อ\s+([ก-๙a-z].+)/i,
+];
 
-// Extract search query จาก message
+// Extract search query จาก message (เลขบัญชี → เบอร์ → ชื่อ)
 function extractSearchQuery(message: string): string | null {
-  const accountMatches = message.match(ACCOUNT_NUMBER_PATTERN);
-  if (accountMatches && accountMatches.length > 0) {
-    return accountMatches[0];
-  }
+  const accountMatch = message.match(ACCOUNT_NUMBER_PATTERN);
+  if (accountMatch) return accountMatch[0];
 
-  const phoneMatches = message.match(PHONE_PATTERN);
-  if (phoneMatches && phoneMatches.length > 0) {
-    return phoneMatches[0];
+  const phoneMatch = message.match(PHONE_PATTERN);
+  if (phoneMatch) return phoneMatch[0];
+
+  for (const pattern of NAME_PATTERNS) {
+    const match = message.match(pattern);
+    if (match?.[1]) {
+      const extracted = match[1].trim();
+      // กรองออกถ้าผลที่ได้เป็นแค่ตัวเลข
+      if (!/^\d+$/.test(extracted.replace(/-/g, ""))) {
+        return extracted;
+      }
+    }
   }
 
   return null;
 }
 
+// จำนวน turn สูงสุดที่ส่งไปให้ model (1 turn = 1 user + 1 assistant)
+// เกินนี้จะตัด history เก่าออกเพื่อประหยัด token
+const MAX_HISTORY_TURNS = 6;
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
+
+    // ตัด history เก่าออก — เก็บแค่ MAX_HISTORY_TURNS * 2 messages ล่าสุด
+    const windowedMessages = messages.slice(-(MAX_HISTORY_TURNS * 2));
 
     // ดึง message ล่าสุดของ user
     const lastUserMessage = messages
@@ -71,7 +90,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: google("gemini-2.5-flash"),
       system: SYSTEM_PROMPT + contextMessage,
-      messages,
+      messages: windowedMessages,
     });
 
     return result.toTextStreamResponse();
