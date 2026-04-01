@@ -28,6 +28,9 @@ Font.register({
   ],
 });
 
+// Fix: prevent react-pdf from breaking Thai words incorrectly
+Font.registerHyphenationCallback((word) => [word]);
+
 // Styles
 const styles = StyleSheet.create({
   page: {
@@ -203,7 +206,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
 
       {/* Section 1: ข้อมูลผู้เสียหาย */}
       <View style={styles.section}>
-        <Text style={styles.sectionNumber}>1. ข้อมูลผู้เสียหาย</Text>
+        <Text style={styles.sectionNumber}>1. ข้อมูลผู้เสียหาย </Text>
         <View style={styles.row}>
           <Text style={styles.label}>ชื่อ-นามสกุล (นาย/นาง/นางสาว) </Text>
           <Text style={styles.value}>{data.fullname}</Text>
@@ -241,7 +244,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
         </Text>
         <Text style={styles.value}>{data.address}</Text>
         <View style={styles.subSection}>
-          <Text style={styles.subSectionTitle}>ที่อยู่ปัจจุบันผู้เสียหาย</Text>
+          <Text style={styles.subSectionTitle}>ที่อยู่ปัจจุบันผู้เสียหาย </Text>
           <Text style={styles.value}>{data.current_address}</Text>
         </View>
       </View>
@@ -255,16 +258,16 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
           <View style={data.met_investigator === false ? styles.checkboxChecked : styles.checkbox}>
             {data.met_investigator === false && <CheckmarkIcon />}
           </View>
-          <Text>ยังไม่เคยพบ</Text>
+          <Text>ยังไม่เคยพบ </Text>
         </View>
         <View style={styles.checkboxRow}>
           <View style={data.met_investigator === true ? styles.checkboxChecked : styles.checkbox}>
             {data.met_investigator === true && <CheckmarkIcon />}
           </View>
-          <Text>เคยพบแล้ว</Text>
+          <Text>เคยพบแล้ว </Text>
         </View>
         <Text style={{ marginTop: 6, marginBottom: 4 }}>
-          กรุณาระบุหน่วยงานตำรวจที่ท่านสะดวกไปพบ
+          กรุณาระบุหน่วยงานตำรวจที่ท่านสะดวกไปพบ 
         </Text>
         <View style={styles.row}>
           <Text style={styles.label}>สถานีตำรวจ จังหวัด </Text>
@@ -277,7 +280,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
 
       {/* Section 4: ประเภทของเรื่อง */}
       <View style={styles.section}>
-        <Text style={styles.sectionNumber}>4. ประเภทของเรื่อง</Text>
+        <Text style={styles.sectionNumber}>4. ประเภทของเรื่อง </Text>
         {caseTypes.map((type, index) => (
           <View key={index} style={styles.checkboxRow}>
             <View style={type === data.case_type ? styles.checkboxChecked : styles.checkbox}>
@@ -287,7 +290,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
           </View>
         ))}
         <View style={{ marginTop: 10 }}>
-          <Text style={styles.subSectionTitle}>รายละเอียดของการเกิดเหตุโดยย่อ</Text>
+          <Text style={styles.subSectionTitle}>รายละเอียดของการเกิดเหตุโดยย่อ </Text>
           <View style={styles.incidentDetails}>
             <Text style={styles.value}>{data.incident_details}</Text>
           </View>
@@ -296,7 +299,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
 
       {/* Section 5: รายการทรัพย์สินที่เสียหาย */}
       <View style={styles.section}>
-        <Text style={styles.sectionNumber}>5. รายการทรัพย์สินที่เสียหาย</Text>
+        <Text style={styles.sectionNumber}>5. รายการทรัพย์สินที่เสียหาย </Text>
         <View style={styles.row}>
           <Text style={styles.label}>ประเภททรัพย์สิน </Text>
           <Text style={styles.value}>{data.asset_type}</Text>
@@ -326,7 +329,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
 
         {/* โทรศัพท์ */}
         <View style={styles.subSection}>
-          <Text style={styles.subSectionTitle}>โทรศัพท์</Text>
+          <Text style={styles.subSectionTitle}>โทรศัพท์ </Text>
           <View style={styles.row}>
             <Text style={styles.label}>หมายเลขโทรศัพท์ที่รับสาย </Text>
             <Text style={styles.value}>{data.received_phone || "-"}</Text>
@@ -357,7 +360,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
       {/* Section หลักฐานรูปภาพ (ถ้ามี) */}
       {data.evidence_images && data.evidence_images.length > 0 && (
         <View style={styles.evidenceSection}>
-          <Text style={styles.sectionNumber}>8. รูปภาพหลักฐานที่แนบ</Text>
+          <Text style={styles.sectionNumber}>8. รูปภาพหลักฐานที่แนบ </Text>
           <View style={styles.evidenceGrid}>
             {data.evidence_images.map((src, idx) => (
               // eslint-disable-next-line jsx-a11y/alt-text
@@ -369,7 +372,7 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
 
       {/* Section 7: ลายเซ็น */}
       <View style={styles.section}>
-        <Text style={styles.sectionNumber}>7. คำร้องขอจากผู้แจ้ง</Text>
+        <Text style={styles.sectionNumber}>7. คำร้องขอจากผู้แจ้ง </Text>
         <View style={styles.signatureSection}>
           <View style={styles.signatureBlock}>
             <View style={styles.signatureLine}>

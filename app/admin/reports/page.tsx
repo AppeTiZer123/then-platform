@@ -25,14 +25,10 @@ import {
 
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case "pending":
-      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">รอดำเนินการ</Badge>;
-    case "in_progress":
-      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">กำลังดำเนินการ</Badge>;
+    case "tip":
+      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">แจ้งเบาะแส</Badge>;
     case "completed":
-      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">เสร็จสิ้น</Badge>;
-    case "rejected":
-      return <Badge variant="destructive">ยกเลิก</Badge>;
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">ออกเอกสารแล้ว</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
@@ -162,9 +158,8 @@ export default function AdminReportsPage() {
                 className="h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="all">ทุกสถานะ</option>
-                <option value="pending">รอดำเนินการ</option>
-                <option value="in_progress">กำลังดำเนินการ</option>
-                <option value="completed">เสร็จสิ้น</option>
+                <option value="tip">แจ้งเบาะแส</option>
+                <option value="completed">ออกเอกสารแล้ว</option>
               </select>
             </div>
           </div>

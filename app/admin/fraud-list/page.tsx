@@ -412,6 +412,25 @@ export default function FraudListPage() {
                   }
                 />
               </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">
+                  สถานะ
+                </label>
+                <select
+                  value={editForm.status ?? "pending"}
+                  onChange={(e) =>
+                    setEditForm((s) => ({
+                      ...s,
+                      status: e.target.value as FraudAccount["status"],
+                    }))
+                  }
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="pending">รอตรวจสอบ</option>
+                  <option value="investigating">กำลังตรวจสอบ</option>
+                  <option value="confirmed">ยืนยันแล้ว</option>
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">

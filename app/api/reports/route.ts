@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       suspectSocialMedia: extractedData.social_media_url
         ? `${extractedData.social_media_type || ""}: ${extractedData.social_media_url}`
         : null,
-      status: "pending",
+      status: "completed",
       aiGeneratedDocument: extractedData as Record<string, unknown>,
     });
 
