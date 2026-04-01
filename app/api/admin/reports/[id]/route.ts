@@ -45,18 +45,31 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { status } = body;
+    const { status, assignedOfficerId } = body;
 
-    if (!status) {
+    if (!status && !assignedOfficerId) {
       return NextResponse.json(
-        { ok: false, error: "status is required" },
+        { ok: false, error: "status หรือ assignedOfficerId จำเป็นต้องมีอย่างน้อย 1 อย่าง" },
         { status: 400 },
       );
     }
 
     const mod = await import("@/lib/db/repositories");
-    const updated = await mod.reportRepo.updateStatus(id, status);
 
+    // มอบหมายเจ้าหน้าที่ (พร้อมเปลี่ยน status เป็น in_progress อัตโนมัติ)
+    if (assignedOfficerId) {
+      const updated = await mod.reportRepo.assignOfficer(id, assignedOfficerId);
+      if (!updated) {
+        return NextResponse.json(
+          { ok: false, error: "Report not found" },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({ ok: true, data: updated });
+    }
+
+    // อัพเดท status อย่างเดียว
+    const updated = await mod.reportRepo.updateStatus(id, status);
     if (!updated) {
       return NextResponse.json(
         { ok: false, error: "Report not found" },
@@ -71,3 +84,4 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
+

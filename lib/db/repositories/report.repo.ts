@@ -44,9 +44,22 @@ export const reportRepo = {
     suspectPhone?: string | null;
     suspectSocialMedia?: string | null;
     status?: string;
+    aiGeneratedDocument?: Record<string, unknown> | null;
   }) {
     const [newReport] = await db.insert(reports).values(data).returning();
     return newReport;
+  },
+
+  /**
+   * ค้นหา report จาก case number (รวม ai_generated_document สำหรับ re-download)
+   */
+  async findByCaseNumber(caseNumber: string) {
+    const results = await db
+      .select()
+      .from(reports)
+      .where(eq(reports.caseNumber, caseNumber.trim().toUpperCase()))
+      .limit(1);
+    return results[0] || null;
   },
 
   /**
@@ -71,6 +84,23 @@ export const reportRepo = {
       .returning();
 
     return updated;
+  },
+
+  /**
+   * มอบหมายเจ้าหน้าที่ให้ report + เปลี่ยน status เป็น in_progress อัตโนมัติ
+   */
+  async assignOfficer(reportId: string, officerId: string) {
+    const [updated] = await db
+      .update(reports)
+      .set({
+        assignedOfficerId: officerId,
+        status: "in_progress",
+        updatedAt: new Date(),
+      })
+      .where(eq(reports.id, reportId))
+      .returning();
+
+    return updated ?? null;
   },
 };
 
