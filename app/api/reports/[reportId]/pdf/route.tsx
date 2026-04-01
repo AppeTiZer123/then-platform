@@ -22,10 +22,10 @@ export async function GET(
     );
   }
 
-  // ดึงรูปหลักฐานจาก Supabase Storage → base64
+  // ดึงรูปหลักฐานจาก Supabase Storage → แปลงเป็น base64 เพื่อฝังใน PDF
   const evidenceImages = await evidenceRepo.getBase64Images(reportId);
 
-  // Merge ข้อมูล + รูป
+  // รวมข้อมูล AI + รูปหลักฐานเป็น object เดียวสำหรับ render PDF
   const pdfData: IncidentReportData = {
     ...(report.aiGeneratedDocument as unknown as IncidentReportData),
     evidence_images: evidenceImages,

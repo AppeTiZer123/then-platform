@@ -35,13 +35,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // 1. Generate case number (server-side, safe)
+    // 1. สร้างเลขคดี: RPT-ปี-ลำดับ-UUID6 (ต่อ UUID 6 หลักป้องกันชนกันกรณี concurrent requests)
     const year = new Date().getFullYear();
     const reportCount = await reportRepo.count();
     const suffix = crypto.randomUUID().slice(0, 6).toUpperCase();
     const caseNumber = `RPT-${year}-${String(reportCount + 1).padStart(4, "0")}-${suffix}`;
 
-    // 2. Resolve suspect fraud account
+    // 2. จัดการบัญชีมิจฉาชีพ: ถ้ามีอยู่แล้วเพิ่มสถิติ, ไม่มีก็สร้างใหม่
     let fraudAccountId: string | null = null;
     const suspectAccountNumber = extractedData.suspect_account_number as string;
     const suspectBankName = extractedData.suspect_bank_name as string;
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Resolve incidentDate — ต้องเป็น YYYY-MM-DD
+    // 3. แปลงวันที่เกิดเหตุเป็น YYYY-MM-DD (รองรับหลาย format ที่ AI อาจส่งมา)
     const rawDate = String(extractedData.asset_date || "");
     let incidentDate = new Date().toISOString().split("T")[0];
     if (rawDate) {

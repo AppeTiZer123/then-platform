@@ -32,8 +32,8 @@ export const evidenceRepo = {
   },
 
   /**
-   * ดึงรูปทั้งหมดของ report แล้ว convert เป็น base64 string[]
-   * สำหรับใส่ใน PDF generation (evidence_images field)
+   * ดึงรูปหลักฐานทั้งหมดของ report แล้วแปลงเป็น base64 data URI
+   * ขั้นตอน: สร้าง signed URL ชั่วคราว → fetch รูป → แปลงเป็น base64 เพื่อฝังใน PDF
    */
   async getBase64Images(reportId: string): Promise<string[]> {
     const records = await db

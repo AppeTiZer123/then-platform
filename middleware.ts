@@ -30,7 +30,7 @@ export default auth((req) => {
     }
   }
 
-  // Complete profile redirect for new users
+  // บังคับ user ใหม่กรอกข้อมูลโปรไฟล์ก่อนเข้าใช้งาน (ยกเว้น API และหน้า complete-profile เอง)
   if (
     isLoggedIn &&
     !nextUrl.pathname.startsWith("/complete-profile") &&
@@ -46,14 +46,12 @@ export default auth((req) => {
 });
 
 export const config = {
+  // กำหนดว่า middleware จะทำงานกับ path ไหนบ้าง
   matcher: [
-    // Match admin routes
     "/admin/:path*",
-    // Match report routes
     "/report/:path*",
-    // Match complete-profile
     "/complete-profile",
-    // Skip static files and API
+    // Negative lookahead: ข้าม static files และ NextAuth API เพื่อไม่ให้ middleware ไปกั่น request พวกนี้
     "/((?!_next/static|_next/image|favicon.ico|api/auth).*)",
   ],
 };

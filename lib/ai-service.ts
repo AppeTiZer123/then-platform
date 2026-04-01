@@ -165,31 +165,31 @@ function formatCurrency(amount: number | string | null): string {
   }).format(numAmount);
 }
 
+// ลำดับการตอบกลับ: ค้น DB ด้วย regex → ค้น DB ด้วยข้อความตรง → จับคู่ keyword → default
 export async function getAIResponse(message: string): Promise<string> {
   const lowerMessage = message.toLowerCase();
   const trimmedMessage = message.trim();
 
-  // ลองค้นหาในฐานข้อมูลมิจฉาชีพก่อนเสมอ
-  // 1. ดึง query จาก pattern (เลขบัญชี, เบอร์โทร, หรือชื่อที่มี keyword นำหน้า)
+  // ขั้น 1: ดึงเลขบัญชี/เบอร์โทร/ชื่อ จาก regex แล้วค้นใน DB
   const extractedQuery = extractSearchQuery(message);
   if (extractedQuery) {
     const result = await searchFraudAccountFromDB(extractedQuery);
     if (result) {
       return formatFraudResponse(result);
     }
-    // ถ้า extract ได้แต่ไม่เจอ และมี keyword ค้นหา ให้แจ้งว่าไม่พบ
+    // extract ได้แต่ไม่เจอ + มี keyword ค้นหา → แจ้งว่าไม่พบ
     if (shouldSearchFraud(message)) {
       return formatNotFoundResponse(extractedQuery);
     }
   }
 
-  // 2. ลองค้นหาด้วย message ตรงๆ (กรณีพิมพ์ชื่อเฉยๆ เช่น "นายสมชาย รักเงิน")
+  // ขั้น 2: fallback — ค้นด้วยข้อความทั้งหมด (กรณีพิมพ์ชื่อเฉยๆ เช่น "นายสมชาย รักเงิน")
   const directResult = await searchFraudAccountFromDB(trimmedMessage);
   if (directResult) {
     return formatFraudResponse(directResult);
   }
 
-  // Find matching response จาก keywords
+  // ขั้น 3: จับคู่ keyword สำเร็จรูป (สวัสดี, โดนโกง, แจ้งความ ฯลฯ)
   for (const item of responses) {
     if (item.keywords.some((keyword) => lowerMessage.includes(keyword))) {
       return item.response;

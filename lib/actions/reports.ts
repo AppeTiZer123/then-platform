@@ -27,6 +27,8 @@ type Report = {
 
 type LegacyRow = Record<string, unknown>;
 
+// แปลง row จาก DB → Report type รองรับทั้ง camelCase (Drizzle ORM) และ snake_case (raw SQL)
+// ใช้ ?? chain เพื่อลองหลาย key จนกว่าจะเจอค่า
 function mapRepoResult(r: LegacyRow): Report {
   return {
     id: String(r.id ?? r.caseNumber ?? r.case_number ?? Math.random()),

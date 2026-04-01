@@ -31,6 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    // jwt callback ถูกเรียกทุกครั้งที่สร้างหรืออ่าน JWT token
     async jwt({ token, user, trigger, session }) {
       // เมื่อ login ครั้งแรก เก็บ user data ใน token
       if (user) {
@@ -40,7 +41,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = user.role;
       }
       
-      // เมื่อเรียก update() จาก client - refresh token ด้วยข้อมูลใหม่
+      // trigger="update" เกิดเมื่อ client เรียก useSession().update() → ดึงข้อมูลล่าสุดจาก DB มา sync
       if (trigger === "update" && session) {
         // ดึงข้อมูลใหม่จาก DB
         const freshUser = await findUserById(token.id as string);

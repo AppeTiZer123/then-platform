@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Upload ไปยัง Supabase Storage
+      // Upload ไปยัง Supabase Storage (path: reportId/timestamp-uuid.ext)
       const ext = file.name.split(".").pop();
       const storagePath = `${reportId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
       const arrayBuffer = await file.arrayBuffer();

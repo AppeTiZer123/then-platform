@@ -11,8 +11,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
 // ใช้ได้เฉพาะใน API routes / server actions เท่านั้น ห้าม expose ฝั่ง client
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
-    autoRefreshToken: false,
-    persistSession: false,
+    autoRefreshToken: false, // server-side ไม่ต้อง refresh token อัตโนมัติ
+    persistSession: false,   // ไม่เก็บ session (stateless)
   },
 });
 

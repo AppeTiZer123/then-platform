@@ -18,6 +18,7 @@ export async function GET() {
     );
   }
 
+  // สร้าง connection ตรงแทนใช้ Drizzle เพื่อยิง raw SQL ตรงๆ ไปที่ DB (debug ดูข้อมูลดิบ)
   const sql = postgres(process.env.DATABASE_URL, { prepare: false });
   try {
     // Return full rows (all columns) from both tables for inspection

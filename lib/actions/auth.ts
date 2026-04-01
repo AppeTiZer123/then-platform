@@ -7,6 +7,7 @@ import { otpVerifications } from "@/lib/db/schema";
 import { findUserById } from "./user";
 import { sendSms } from "@/lib/sms-service";
 
+// แปลง OTP เป็น SHA-256 hash เพื่อไม่เก็บ OTP ตัวจริงใน DB (ป้องกันข้อมูลรั่ว)
 function hashOtp(code: string): string {
   return createHash("sha256").update(code).digest("hex");
 }
@@ -18,6 +19,7 @@ export async function requestOTP(
     return { success: false, message: "กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง" };
   }
 
+  // สุ่มรหัส 6 หลัก (100000-999999) พร้อมกำหนดหมดอายุ 5 นาที
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
@@ -45,6 +47,7 @@ export async function verifyOTP(
     return { success: false, message: "ข้อมูลไม่ครบ" };
   }
 
+  // ค้นหา OTP ที่ตรงเบอร์ + hash ตรงกัน + ยังไม่ถูกใช้ + ยังไม่หมดอายุ
   const record = await db.query.otpVerifications.findFirst({
     where: and(
       eq(otpVerifications.phone, phone),

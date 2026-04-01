@@ -12,8 +12,9 @@ if (!process.env.DATABASE_URL) {
 const connectionString = process.env.DATABASE_URL;
 
 // Postgres client
+// prepare: false จำเป็นสำหรับ Supabase Transaction Mode (PgBouncer) เพราะ prepared statements ทำงานไม่ได้กับ connection pooler
 const client = postgres(connectionString, {
-  prepare: false, // สำหรับ Supabase Transaction Mode
+  prepare: false,
 });
 
 // Drizzle instance พร้อม schema

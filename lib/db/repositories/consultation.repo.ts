@@ -92,9 +92,9 @@ export const consultationRepo = {
 
   /**
    * เพิ่มคำตอบจาก Admin
+   * ใช้ Transaction รับประกันว่า insert response + เปลี่ยน status เป็น "answered" จะสำเร็จหรือล้มเหลวพร้อมกัน
    */
   async addResponse(consultationId: string, data: Omit<NewConsultationResponse, "consultationId">) {
-    // ใช้ Transaction เพื่อเปลี่ยน Status ของ Consultation ไปพร้อมกับการเพิ่ม Response
     return db.transaction(async (tx) => {
       const [response] = await tx
         .insert(consultationResponses)

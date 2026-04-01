@@ -153,7 +153,7 @@ export const consultationResponses = thenApp.table("consultation_responses", {
 });
 
 // =============================================
-// Relations
+// Relations — กำหนดความสัมพันธ์ระหว่างตาราง (ใช้กับ Drizzle query API เช่น .findMany({ with: ... }))
 // =============================================
 export const usersRelations = relations(users, ({ many }) => ({
   reports: many(reports),

@@ -48,15 +48,14 @@ function extractSearchQuery(message: string): string | null {
   return null;
 }
 
-// จำนวน turn สูงสุดที่ส่งไปให้ model (1 turn = 1 user + 1 assistant)
-// เกินนี้จะตัด history เก่าออกเพื่อประหยัด token
+// จำกัด turn เก่าที่สุดที่ส่งไปให้ model เพื่อคุม token cost (1 turn = user + assistant)
 const MAX_HISTORY_TURNS = 6;
 
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    // ตัด history เก่าออก — เก็บแค่ MAX_HISTORY_TURNS * 2 messages ล่าสุด
+    // ตัด history เก่าทิ้ง เก็บแค่ข้อความล่าสุดตามขนาด window
     const windowedMessages = messages.slice(-(MAX_HISTORY_TURNS * 2));
 
     // ดึง message ล่าสุดของ user
@@ -66,7 +65,7 @@ export async function POST(req: Request) {
 
     let contextMessage = "";
 
-    // ถ้ามีเลขบัญชีหรือเบอร์โทร ลองค้นหาจาก database
+    // ถ้าเจอข้อมูลบัญชีมิจฉาชีพใน DB → แนบเป็น context เพิ่มเติมใน system prompt
     if (lastUserMessage) {
       const query = extractSearchQuery(lastUserMessage.content);
       if (query) {

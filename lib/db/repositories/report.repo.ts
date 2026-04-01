@@ -63,7 +63,7 @@ export const reportRepo = {
   },
 
   /**
-   * นับจำนวน reports ทั้งหมด (สำหรับ generate case number)
+   * นับจำนวน reports ทั้งหมด — ใช้ SQL COUNT(*) เพื่อสร้าง case number ลำดับถัดไป
    */
   async count(): Promise<number> {
     const [{ value }] = await db.select({ value: sqlCount() }).from(reports);

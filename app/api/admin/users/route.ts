@@ -12,6 +12,7 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+// ใช้ auth() wrapper แทน middleware เพื่อเข้าถึง session ได้จาก req.auth
 export const GET = auth(async (req: Request) => {
   try {
     const r = req as AuthenticatedRequest;

@@ -13,7 +13,7 @@ function parseCSV(text: string): { headers: string[]; rows: Record<string, strin
 
   if (lines.length < 2) throw new Error("ไฟล์ CSV ต้องมีอย่างน้อย 1 แถวข้อมูล");
 
-  // Parse quoted CSV
+// แยก CSV ทีละบรรทัด: รองรับการ quote ("") และ comma ในค่า
   const parseRow = (line: string): string[] => {
     const cols: string[] = [];
     let cur = "";
@@ -22,6 +22,7 @@ function parseCSV(text: string): { headers: string[]; rows: Record<string, strin
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
+        // double-quote ("") ภายใน quoted field หมายถึง literal quote
         if (inQuote && line[i + 1] === '"') {
           cur += '"';
           i++;
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Preview only — return parsed rows without writing
+    // ยังไม่กด confirm → แค่ preview ข้อมูล 5 แถวแรก ไม่เขียน DB
     if (!isConfirm) {
       return NextResponse.json({
         ok: true,
@@ -143,7 +144,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Confirm → upsert into DB
+    // กด confirm แล้ว → upsert ลง DB (มีอยู่=อัพเดท, ไม่มี=สร้างใหม่)
     const { fraudRepo } = await import("@/lib/db/repositories");
     let inserted = 0;
     let updated = 0;

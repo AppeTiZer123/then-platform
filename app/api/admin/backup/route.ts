@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 
+// แปลง array of objects เป็น CSV string พร้อม BOM (เพื่อให้ Excel เปิดภาษาไทยถูก)
 function toCSV(headers: string[], rows: Record<string, unknown>[]): string {
+  // escape ค่าที่มี comma, newline, quote — ครอบด้วย double-quote
   const escape = (val: unknown): string => {
     const str = val == null ? "" : String(val);
     // Wrap in quotes if contains comma, newline, or quote

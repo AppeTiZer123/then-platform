@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { fraudAccounts } from "@/lib/db/schema";
 import { or, ilike, desc, eq } from "drizzle-orm";
 
-/** Escape special LIKE wildcard characters to prevent wildcard injection */
+/** ป้องกัน SQL Injection ผ่าน LIKE wildcard — escape ตัว %, _ และ \\ ที่เป็นอักขระพิเศษใน LIKE pattern */
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
@@ -17,6 +17,7 @@ export const fraudRepo = {
    * ค้นหาบัญชีมิจฉาชีพจาก query string
    */
   async search(query: string): Promise<FraudAccount | null> {
+    // ลบขีด (-) และ escape wildcard ก่อนค้น เพื่อให้จับคู่ได้ทั้งรูปแบบมีขีดและไม่มีขีด
     const normalizedQuery = escapeLike(query.replace(/-/g, "").trim());
 
     const results = await db

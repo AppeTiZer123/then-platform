@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 `,
     });
 
-    // Merge with empty template to ensure all fields exist
+    // รวม template เปล่า + ข้อมูลที่ AI สกัด เพื่อรับประกันว่าทุก field มีค่าเสมอ (แม้ AI ส่งมาไม่ครบ)
     const finalData = {
       ...emptyIncidentReportData,
       fullname: object.fullname || contactInfo?.name || "",
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
       // You can add logic here to put suspect bank info into a specific format string if needed
     };
 
-    // If suspect bank info is found, append to incident details for clarity if not already clear
+    // ถ้า AI ดึงข้อมูลบัญชีคนร้ายได้ แต่ยังไม่มีใน incident_details → เติมเข้าไปท้ายข้อความ
     if (object.suspect_account_number || object.suspect_bank_name) {
       const bankInfo = `\n\nข้อมูลบัญชีคนร้าย: ${object.suspect_bank_name || ""} เลขที่ ${object.suspect_account_number || ""} ชื่อ ${object.suspect_account_name || ""}`;
       if (!finalData.incident_details.includes(object.suspect_account_number)) {

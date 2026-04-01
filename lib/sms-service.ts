@@ -14,13 +14,14 @@ export async function sendSms(msisdn: string, message: string): Promise<void> {
     throw new Error("Thaibulk SMS credentials not configured");
   }
 
+  // สร้าง Basic Auth credentials จาก API key + secret (encode เป็น Base64)
   const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
 
   const payload: ThaibulkPayload = {
-    msisdn,
+    msisdn, // เบอร์ปลายทาง
     message,
     sender,
-    force: "corporate",
+    force: "corporate", // ใช้ sender name แบบ corporate (ไม่ใช่เบอร์สั้น)
   };
 
   const res = await fetch("https://api-v2.thaibulksms.com/sms", {

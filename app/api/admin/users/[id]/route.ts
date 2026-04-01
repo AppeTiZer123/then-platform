@@ -20,7 +20,7 @@ export const PUT = auth(async (req: Request) => {
     const { action, role } = body;
 
     if (action === "toggleSuspend") {
-      // Use role='suspended' as temporary suspended flag
+      // สลับสถานะ: ใช้ role="suspended" เป็น flag ระงับ (ถ้า suspended อยู่แล้วก็ปลดกลับเป็น user)
       const existing = await db.select().from(users).where(eq(users.id, id)).limit(1);
       const current = existing[0] as any;
       const newRole = current?.role === "suspended" ? "user" : "suspended";
@@ -64,7 +64,7 @@ export const PUT = auth(async (req: Request) => {
         return NextResponse.json({ user: updated });
       } catch (dbErr: any) {
         console.error("DB update error (users/[id]):", dbErr);
-        // Prefer Postgres error code handling when available
+        // จับ Postgres error code 23505 (unique_violation) แล้วแปลงเป็น error message ที่เข้าใจง่าย
         const code = dbErr?.code || dbErr?.cause?.code;
         const detail = dbErr?.detail || dbErr?.cause?.detail || "";
         if (code === "23505") {
