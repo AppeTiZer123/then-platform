@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
         damageAmount: reports.damageAmount,
         createdAt: reports.createdAt,
         updatedAt: reports.updatedAt,
+        aiGeneratedDocument: reports.aiGeneratedDocument,
       })
       .from(reports)
       .where(eq(reports.caseNumber, caseNumber.trim().toUpperCase()))

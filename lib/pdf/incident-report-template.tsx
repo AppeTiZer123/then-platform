@@ -8,6 +8,7 @@ import {
   Font,
   Svg,
   Path,
+  Image,
 } from "@react-pdf/renderer";
 import type { IncidentReportData } from "@/types/pdf-report";
 import path from "path";
@@ -135,6 +136,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#333",
     textAlign: "justify",
+  },
+  evidenceSection: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  evidenceGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 4,
+  },
+  evidenceImage: {
+    width: "48%",
+    height: 140,
+    objectFit: "contain",
+    border: "1pt solid #ddd",
   },
 });
 
@@ -336,6 +353,19 @@ export const IncidentReportDocument: React.FC<Props> = ({ data }) => (
           </View>
         </View>
       </View>
+
+      {/* Section หลักฐานรูปภาพ (ถ้ามี) */}
+      {data.evidence_images && data.evidence_images.length > 0 && (
+        <View style={styles.evidenceSection}>
+          <Text style={styles.sectionNumber}>8. รูปภาพหลักฐานที่แนบ</Text>
+          <View style={styles.evidenceGrid}>
+            {data.evidence_images.map((src, idx) => (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image key={idx} src={src} style={styles.evidenceImage} />
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Section 7: ลายเซ็น */}
       <View style={styles.section}>

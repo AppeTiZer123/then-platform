@@ -81,7 +81,6 @@ export default function AdminReportsPage() {
     };
   }, [openMenuId, searchParams]);
 
-  // Type definition for Report to replace 'any'
   interface Report {
     id: string;
     caseNumber: string;
@@ -90,7 +89,9 @@ export default function AdminReportsPage() {
     incidentDate: string;
     damageAmount: number;
     status: string;
-    [key: string]: string | number | boolean | null | undefined; // Allow flexible properties for now
+    assignedOfficerId?: string | null;
+    assignedOfficerName?: string | null;
+    [key: string]: string | number | boolean | null | undefined;
   }
   
   const [reports, setReports] = useState<Report[]>(mockReports as unknown as Report[]);
@@ -185,6 +186,7 @@ export default function AdminReportsPage() {
                   <th className="text-left py-3 px-6 text-sm font-medium text-muted-foreground hidden md:table-cell">วันเกิดเหตุ</th>
                   <th className="text-left py-3 px-6 text-sm font-medium text-muted-foreground hidden sm:table-cell">ความเสียหาย</th>
                   <th className="text-left py-3 px-6 text-sm font-medium text-muted-foreground">สถานะ</th>
+                  <th className="text-left py-3 px-6 text-sm font-medium text-muted-foreground hidden lg:table-cell">เจ้าหน้าที่</th>
                   <th className="text-right py-3 px-6 text-sm font-medium text-muted-foreground">จัดการ</th>
                 </tr>
               </thead>
@@ -210,6 +212,11 @@ export default function AdminReportsPage() {
                     </td>
                     <td className="py-5 px-6 align-middle">
                       {getStatusBadge(report.status as string)}
+                    </td>
+                    <td className="py-5 px-6 align-middle hidden lg:table-cell">
+                      <span className="text-sm text-muted-foreground">
+                        {(report.assignedOfficerName as string) ?? "—"}
+                      </span>
                     </td>
                     <td className="py-5 px-6 text-right align-middle">
                       <div className="flex items-center justify-end gap-2 relative">

@@ -79,7 +79,7 @@ export const mockReports: Report[] = [
     status: "in_progress",
     createdAt: "2024-12-09T14:20:00Z",
     updatedAt: "2024-12-10T09:00:00Z",
-    assignedOfficer: "พ.ต.ท. สมชาย รักษาความ",
+    assignedOfficerName: "พ.ต.ท. สมชาย รักษาความ",
   },
   {
     id: "3",
@@ -94,7 +94,7 @@ export const mockReports: Report[] = [
     status: "completed",
     createdAt: "2024-12-05T08:15:00Z",
     updatedAt: "2024-12-10T16:00:00Z",
-    assignedOfficer: "พ.ต.ท. สมชาย รักษาความ",
+    assignedOfficerName: "พ.ต.ท. สมชาย รักษาความ",
   },
 ];
 

@@ -25,36 +25,28 @@ interface ReportDetail {
   status?: string | null;
 }
 
+interface OfficerItem {
+  id: string;
+  userId?: string | null;
+  rank?: string | null;
+  department?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  // joined from users table (populated if backend joins)
+  name?: string | null;
+  phone?: string | null;
+}
+
 export default function AssignOfficerPage() {
   const router = useRouter();
   const params = useParams() as { id: string } | null;
   const reportId = params?.id || "";
 
   const [report, setReport] = useState<ReportDetail | null>(null);
-  const mockOfficers = [
-    {
-      id: "off-1",
-      name: "พ.ต.ท. สมชาย รักษาความ",
-      title: "หัวหน้าสอบสวน",
-      phone: "081-900-1111",
-      avail: "ว่าง",
-    },
-    {
-      id: "off-2",
-      name: "ร.ต.อ. สมหญิง ใจดี",
-      title: "เจ้าหน้าที่สืบสวน",
-      phone: "082-777-2222",
-      avail: "ไม่ว่าง",
-    },
-    {
-      id: "off-3",
-      name: "ด.ต. สมศักดิ์ ตรวจงาน",
-      title: "สนับสนุน",
-      phone: "083-333-4444",
-      avail: "ว่าง",
-    },
-  ];
+  const [officers, setOfficers] = useState<OfficerItem[]>([]);
+  const [officersLoading, setOfficersLoading] = useState(true);
 
+  // โหลดข้อมูล report
   useEffect(() => {
     if (!reportId) return;
     fetch(`/api/admin/reports/${reportId}`)
@@ -65,38 +57,61 @@ export default function AssignOfficerPage() {
       .catch(() => {});
   }, [reportId]);
 
+  // โหลด officers จาก API
+  useEffect(() => {
+    setOfficersLoading(true);
+    fetch("/api/admin/officers")
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.ok && Array.isArray(j.data)) {
+          setOfficers(j.data as OfficerItem[]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setOfficersLoading(false));
+  }, []);
+
   const [showReportDialog, setShowReportDialog] = useState(false);
-  const [officerView, setOfficerView] = useState<
-    (typeof mockOfficers)[number] | null
-  >(null);
+  const [officerView, setOfficerView] = useState<OfficerItem | null>(null);
 
   const [query, setQuery] = useState("");
-  const [selectedOfficer, setSelectedOfficer] = useState<
-    (typeof mockOfficers)[number] | null
-  >(null);
-  const [role, setRole] = useState("");
-  const [priority, setPriority] = useState("normal");
-  const [dueDate, setDueDate] = useState("");
+  const [selectedOfficer, setSelectedOfficer] = useState<OfficerItem | null>(null);
   const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filtered = mockOfficers.filter(
-    (o) =>
-      o.name.toLowerCase().includes(query.toLowerCase()) ||
-      o.title.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filtered = officers.filter((o) => {
+    const nameMatch = (o.name ?? "").toLowerCase().includes(query.toLowerCase());
+    const rankMatch = (o.rank ?? "").toLowerCase().includes(query.toLowerCase());
+    const deptMatch = (o.department ?? "").toLowerCase().includes(query.toLowerCase());
+    return nameMatch || rankMatch || deptMatch;
+  });
+
+  function getInitials(name?: string | null): string {
+    if (!name) return "??";
+    return name
+      .split(" ")
+      .slice(0, 2)
+      .map((s) => s[0] ?? "")
+      .join("");
+  }
 
   async function handleAssign() {
     if (!selectedOfficer) return alert("โปรดเลือกเจ้าหน้าที่ก่อน");
+    setIsSubmitting(true);
     try {
       const res = await fetch(`/api/admin/reports/${reportId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "in_progress" }),
+        body: JSON.stringify({ assignedOfficerId: selectedOfficer.id }),
       });
-      if (!res.ok) throw new Error("API error");
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error ?? "API error");
       router.push("/admin/reports");
-    } catch {
-      alert("เกิดข้อผิดพลาดในการมอบหมาย กรุณาลองใหม่");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`เกิดข้อผิดพลาด: ${msg}`);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -127,7 +142,7 @@ export default function AssignOfficerPage() {
               </label>
               <div className="flex items-center gap-2 mt-2">
                 <Input
-                  placeholder="พิมพ์ชื่อหรือบทบาท..."
+                  placeholder="พิมพ์ชื่อ ยศ หรือหน่วยงาน..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
@@ -144,37 +159,35 @@ export default function AssignOfficerPage() {
               </div>
 
               <div className="mt-3 space-y-2 max-h-72 overflow-auto">
-                {filtered.map((o) => {
+                {officersLoading && (
+                  <div className="text-sm text-muted-foreground p-3">กำลังโหลด...</div>
+                )}
+                {!officersLoading && filtered.map((o) => {
                   const selected = selectedOfficer?.id === o.id;
-                  const initials = o.name
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((s) => s[0])
-                    .join("");
                   return (
                     <button
                       key={o.id}
-                      onClick={() => {
-                        setSelectedOfficer(o);
-                      }}
+                      onClick={() => setSelectedOfficer(o)}
                       className={`w-full flex items-center gap-3 p-3 rounded-md text-left border ${selected ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/50"}`}
                     >
                       <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-medium">
-                        {initials}
+                        {getInitials(o.name)}
                       </div>
                       <div className="flex-1">
-                        <div className="font-medium">{o.name}</div>
+                        <div className="font-medium">{o.name ?? "(ไม่มีชื่อ)"}</div>
                         <div className="text-xs text-muted-foreground">
-                          {o.title} · {o.phone}
+                          {[o.rank, o.department].filter(Boolean).join(" · ")}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[11px] ${o.avail === "ว่าง" ? "bg-green-50 text-green-700" : "bg-gray-100 text-muted-foreground"}`}
-                          >
-                            {o.avail}
-                          </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] ${
+                            o.isActive
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-100 text-muted-foreground"
+                          }`}
+                        >
+                          {o.isActive ? "ว่าง" : "ไม่ว่าง"}
                         </span>
                         <button
                           onClick={(e) => {
@@ -190,7 +203,7 @@ export default function AssignOfficerPage() {
                     </button>
                   );
                 })}
-                {filtered.length === 0 && (
+                {!officersLoading && filtered.length === 0 && (
                   <div className="text-sm text-muted-foreground p-3">
                     ไม่พบเจ้าหน้าที่
                   </div>
@@ -205,16 +218,14 @@ export default function AssignOfficerPage() {
                 {selectedOfficer ? (
                   <div className="mt-3 flex items-start gap-3">
                     <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-sm font-medium">
-                      {(selectedOfficer.name || "")
-                        .split(" ")
-                        .slice(0, 2)
-                        .map((s) => s[0] || "")
-                        .join("")}
+                      {getInitials(selectedOfficer.name)}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium">{selectedOfficer.name}</div>
+                      <div className="font-medium">{selectedOfficer.name ?? "(ไม่มีชื่อ)"}</div>
                       <div className="text-xs text-muted-foreground">
-                        {selectedOfficer.title} · {selectedOfficer.phone}
+                        {[selectedOfficer.rank, selectedOfficer.department]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </div>
                     </div>
                   </div>
@@ -225,57 +236,6 @@ export default function AssignOfficerPage() {
                 )}
 
                 <div className="mt-4">
-                  <label className="text-sm text-muted-foreground">
-                    บทบาท/หมายเหตุสั้น
-                  </label>
-                  <Input
-                    placeholder="เช่น: สอบสวน, ตรวจสอบบัญชี"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="mt-2"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-                  <div>
-                    <label className="text-sm text-muted-foreground">
-                      ความสำคัญ
-                    </label>
-                    <select
-                      value={priority}
-                      onChange={(e) => setPriority(e.target.value)}
-                      className="mt-2 h-9 rounded-md border border-input bg-background px-3 text-sm w-full"
-                    >
-                      <option value="low">ปกติ</option>
-                      <option value="normal">สำคัญ</option>
-                      <option value="high">ด่วน</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-muted-foreground">
-                      กำหนดเสร็จภายใน
-                    </label>
-                    <Input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-muted-foreground">
-                      สถานะเริ่มต้น
-                    </label>
-                    <select className="mt-2 h-9 rounded-md border border-input bg-background px-3 text-sm w-full">
-                      <option>กำลังดำเนินการ</option>
-                      <option>รอดำเนินการ</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mt-3">
                   <label className="text-sm text-muted-foreground">
                     บันทึกเพิ่มเติม
                   </label>
@@ -291,8 +251,15 @@ export default function AssignOfficerPage() {
                   <Button variant="outline" onClick={() => router.back()}>
                     ยกเลิก
                   </Button>
-                  <Button onClick={handleAssign} disabled={!selectedOfficer}>
-                    {selectedOfficer ? "มอบหมาย" : "เลือกเจ้าหน้าที่ก่อน"}
+                  <Button
+                    onClick={handleAssign}
+                    disabled={!selectedOfficer || isSubmitting}
+                  >
+                    {isSubmitting
+                      ? "กำลังบันทึก..."
+                      : selectedOfficer
+                      ? "มอบหมาย"
+                      : "เลือกเจ้าหน้าที่ก่อน"}
                   </Button>
                 </div>
               </div>
@@ -367,26 +334,22 @@ export default function AssignOfficerPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-sm font-medium">
-                  {(officerView.name || "")
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((s) => s[0] || "")
-                    .join("")}
+                  {getInitials(officerView.name)}
                 </div>
                 <div>
-                  <div className="font-medium">{officerView.name}</div>
+                  <div className="font-medium">{officerView.name ?? "(ไม่มีชื่อ)"}</div>
                   <div className="text-xs text-muted-foreground">
-                    {officerView.title}
+                    {officerView.rank ?? "—"}
                   </div>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">เบอร์โทร</p>
-                <p className="font-medium">{officerView.phone}</p>
+                <p className="text-sm text-muted-foreground">หน่วยงาน</p>
+                <p className="font-medium">{officerView.department ?? "—"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">สถานะ</p>
-                <p className="font-medium">{officerView.avail}</p>
+                <p className="font-medium">{officerView.isActive ? "ว่าง" : "ไม่ว่าง"}</p>
               </div>
               <div className="pt-4 flex justify-end">
                 <DialogClose asChild>

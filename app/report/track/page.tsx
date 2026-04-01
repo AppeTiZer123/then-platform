@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Clock, CheckCircle, AlertCircle, Loader2, FileDown } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/mock-data";
 
 interface TrackResult {
@@ -25,6 +25,7 @@ interface TrackResult {
   damageAmount: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  aiGeneratedDocument: Record<string, unknown> | null;
 }
 
 const getStatusBadge = (status: string) => {
@@ -66,9 +67,34 @@ const getStatusBadge = (status: string) => {
 export default function TrackReportPage() {
   const [caseNumber, setCaseNumber] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [result, setResult] = useState<TrackResult | null | undefined>(
     undefined,
   );
+
+  const handleDownloadPdf = async () => {
+    if (!result?.aiGeneratedDocument) return;
+    setIsDownloading(true);
+    try {
+      // ใช้ endpoint ใหม่ที่ดึงรูป evidence จาก Supabase มาใส่ใน PDF ด้วย
+      const response = await fetch(`/api/reports/${result.id}/pdf`);
+      if (!response.ok) throw new Error("Failed to generate PDF");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ใบแจ้งความ_${result.caseNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download PDF error:", err);
+      alert("เกิดข้อผิดพลาดในการดาวน์โหลด PDF กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,7 +206,7 @@ export default function TrackReportPage() {
                       แจ้งเมื่อ {formatDate(result.createdAt)}
                     </CardDescription>
                   </div>
-                  {getStatusBadge(result.status)}
+                  {getStatusBadge(result.status ?? "")}
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -264,6 +290,30 @@ export default function TrackReportPage() {
                     <span className="text-muted-foreground">รายละเอียด:</span>
                     <p className="mt-1">{result.incidentDetails}</p>
                   </div>
+
+                  {/* ปุ่มดาวน์โหลด PDF */}
+                  {result.aiGeneratedDocument && (
+                    <div className="pt-2">
+                      <Button
+                        onClick={handleDownloadPdf}
+                        disabled={isDownloading}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        {isDownloading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            กำลังสร้าง PDF...
+                          </>
+                        ) : (
+                          <>
+                            <FileDown className="mr-2 h-4 w-4" />
+                            ดาวน์โหลดเอกสาร PDF
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

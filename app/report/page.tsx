@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Navbar } from "@/components/navbar";
@@ -26,7 +26,11 @@ import {
   Sparkles,
   ImagePlus,
   Lock,
+  FileDown,
+  Loader2,
+  Clock,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function ReportPage() {
   const { data: session, status } = useSession();
@@ -45,6 +49,69 @@ export default function ReportPage() {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [processingStatus, setProcessingStatus] = useState<string>("");
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- My Documents ---
+  interface MyReport {
+    id: string;
+    caseNumber: string;
+    status: string | null;
+    incidentDate: string | null;
+    damageAmount: string | null;
+    createdAt: string | null;
+    canDownload: boolean;
+  }
+  const [myReports, setMyReports] = useState<MyReport[]>([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const fetchMyReports = useCallback(async () => {
+    setLoadingReports(true);
+    try {
+      const res = await fetch("/api/reports/mine");
+      if (res.ok) {
+        const json = await res.json();
+        setMyReports(json.data ?? []);
+      }
+    } finally {
+      setLoadingReports(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) fetchMyReports();
+  }, [isAuthenticated, fetchMyReports]);
+
+  const handleRedownload = async (reportId: string, caseNumber: string) => {
+    setDownloadingId(reportId);
+    try {
+      const response = await fetch(`/api/reports/${reportId}/pdf`);
+      if (!response.ok) throw new Error("Failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ใบแจ้งความ_${caseNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("ดาวน์โหลดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const statusLabel = (s: string | null) => {
+    switch (s) {
+      case "pending": return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">รอดำเนินการ</Badge>;
+      case "in_progress": return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">กำลังดำเนินการ</Badge>;
+      case "completed": return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">เสร็จสิ้น</Badge>;
+      default: return <Badge variant="secondary" className="text-xs">{s}</Badge>;
+    }
+  };
 
   // Show loading while checking auth
   if (status === "loading") {
@@ -124,11 +191,25 @@ export default function ReportPage() {
 
       setProcessingStatus("กำลังสร้างเอกสาร PDF...");
 
-      // 2. Generate PDF
+      // 2. Convert รูปเป็น base64 (ถ้ามี)
+      const base64Images: string[] = await Promise.all(
+        evidenceFiles
+          .filter((f) => f.type.startsWith("image/"))
+          .map(
+            (f) =>
+              new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.readAsDataURL(f);
+              }),
+          ),
+      );
+
+      // 3. Generate PDF พร้อมรูป
       const pdfResponse = await fetch("/api/pdf/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(extractedData),
+        body: JSON.stringify({ ...extractedData, evidence_images: base64Images }),
       });
 
       if (!pdfResponse.ok) throw new Error("Failed to generate PDF");
@@ -139,7 +220,7 @@ export default function ReportPage() {
 
       setProcessingStatus("กำลังบันทึกข้อมูลเข้าระบบ...");
 
-      // 3. Save report to DB
+      // 4. Save report to DB
       const saveResponse = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,7 +232,17 @@ export default function ReportPage() {
         ? saveData.caseNumber
         : `RPT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, "0")}`;
 
+      // 5. Upload evidence files ไป Supabase Storage (ถ้ามี)
+      if (evidenceFiles.length > 0 && saveData.ok && saveData.reportId) {
+        setProcessingStatus("กำลังอัปโหลดหลักฐาน...");
+        const fd = new FormData();
+        fd.append("reportId", saveData.reportId);
+        evidenceFiles.forEach((f) => fd.append("files", f));
+        await fetch("/api/reports/evidence", { method: "POST", body: fd });
+      }
+
       setReferenceNumber(caseNumber);
+      await fetchMyReports(); // refresh list
       setStep("complete");
     } catch (error) {
       console.error("Error:", error);
@@ -273,6 +364,70 @@ export default function ReportPage() {
                 </form>
               </CardContent>
             </Card>
+
+            {/* เอกสารของฉัน */}
+            {myReports.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  เอกสารของฉัน
+                </h2>
+                <div className="space-y-3">
+                  {loadingReports ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    myReports.map((r) => (
+                      <Card key={r.id} className="border">
+                        <CardContent className="py-4 px-5">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="font-mono font-semibold text-sm truncate">
+                                {r.caseNumber}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {statusLabel(r.status)}
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {r.createdAt
+                                    ? new Date(r.createdAt).toLocaleDateString("th-TH", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                      })
+                                    : "-"}
+                                </span>
+                              </div>
+                            </div>
+                            {r.canDownload ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={downloadingId === r.id}
+                                onClick={() => handleRedownload(r.id, r.caseNumber)}
+                                className="shrink-0"
+                              >
+                                {downloadingId === r.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <FileDown className="mr-1.5 h-4 w-4" />
+                                    ดาวน์โหลด PDF
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground shrink-0">ไม่มีไฟล์</span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -367,18 +522,57 @@ export default function ReportPage() {
                 </div>
 
                 {/* Upload Evidence */}
-                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                <div
+                  className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.files ?? []);
+                      setEvidenceFiles((prev) => {
+                        const existing = new Set(prev.map((f) => f.name));
+                        return [...prev, ...selected.filter((f) => !existing.has(f.name))];
+                      });
+                    }}
+                  />
                   <ImagePlus className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-sm font-medium mb-1">
-                    แนบรูปหลักฐาน (ไม่บังคับ)
-                  </p>
+                  <p className="text-sm font-medium mb-1">แนบรูปหลักฐาน (ไม่บังคับ)</p>
                   <p className="text-xs text-muted-foreground mb-3">
-                    ภาพหน้าจอการสนทนา, หลักฐานการโอนเงิน
+                    รูปภาพ (JPG, PNG, WEBP) หรือ PDF — ไม่เกิน 10MB/ไฟล์
                   </p>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" type="button">
                     <Upload className="mr-2 h-4 w-4" />
                     เลือกไฟล์
                   </Button>
+
+                  {/* Preview รายชื่อไฟล์ที่เลือก */}
+                  {evidenceFiles.length > 0 && (
+                    <ul className="mt-4 text-left space-y-1">
+                      {evidenceFiles.map((f, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center justify-between text-xs bg-muted rounded px-3 py-1.5"
+                        >
+                          <span className="truncate max-w-[200px]">{f.name}</span>
+                          <button
+                            type="button"
+                            className="ml-2 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEvidenceFiles((prev) => prev.filter((_, idx) => idx !== i));
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-4">

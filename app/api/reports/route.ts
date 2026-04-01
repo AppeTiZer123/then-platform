@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Save report
-    await reportRepo.create({
+    const newReport = await reportRepo.create({
       caseNumber,
       reporterId: session.user.id ?? null,
       reporterName:
@@ -105,9 +105,10 @@ export async function POST(req: NextRequest) {
         ? `${extractedData.social_media_type || ""}: ${extractedData.social_media_url}`
         : null,
       status: "pending",
+      aiGeneratedDocument: extractedData as Record<string, unknown>,
     });
 
-    return NextResponse.json({ ok: true, caseNumber });
+    return NextResponse.json({ ok: true, caseNumber, reportId: newReport.id });
   } catch (error) {
     console.error("Save report error:", error);
     return NextResponse.json(
