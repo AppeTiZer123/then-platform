@@ -63,6 +63,18 @@ export const fraudAccounts = thenApp.table("fraud_accounts", {
 });
 
 // =============================================
+// Officers Table
+// =============================================
+export const officers = thenApp.table("officers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  rank: varchar("rank", { length: 100 }),
+  department: varchar("department", { length: 255 }),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// =============================================
 // Reports Table
 // =============================================
 export const reports = thenApp.table("reports", {
@@ -86,6 +98,10 @@ export const reports = thenApp.table("reports", {
   suspectPhone: varchar("suspect_phone", { length: 20 }),
   suspectSocialMedia: text("suspect_social_media"),
   status: varchar("status", { length: 20 }).default("pending"),
+  assignedOfficerId: uuid("assigned_officer_id").references(
+    () => officers.id,
+    { onDelete: "set null" },
+  ),
   aiGeneratedDocument: jsonb("ai_generated_document"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -142,6 +158,15 @@ export const consultationResponses = thenApp.table("consultation_responses", {
 export const usersRelations = relations(users, ({ many }) => ({
   reports: many(reports),
   consultations: many(consultations),
+  officerProfile: many(officers),
+}));
+
+export const officersRelations = relations(officers, ({ one, many }) => ({
+  user: one(users, {
+    fields: [officers.userId],
+    references: [users.id],
+  }),
+  assignedReports: many(reports),
 }));
 
 export const reportsRelations = relations(reports, ({ one, many }) => ({
@@ -152,6 +177,10 @@ export const reportsRelations = relations(reports, ({ one, many }) => ({
   suspectAccount: one(fraudAccounts, {
     fields: [reports.suspectFraudAccountId],
     references: [fraudAccounts.id],
+  }),
+  assignedOfficer: one(officers, {
+    fields: [reports.assignedOfficerId],
+    references: [officers.id],
   }),
   evidence: many(reportEvidence),
 }));
@@ -194,5 +223,7 @@ export const consultationResponsesRelations = relations(
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type FraudAccount = typeof fraudAccounts.$inferSelect;
+export type Officer = typeof officers.$inferSelect;
+export type NewOfficer = typeof officers.$inferInsert;
 export type Report = typeof reports.$inferSelect;
 export type Consultation = typeof consultations.$inferSelect;

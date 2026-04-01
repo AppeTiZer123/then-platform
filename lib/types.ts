@@ -1,5 +1,14 @@
 // Types for the THEN application
 
+export interface Officer {
+  id: string;
+  userId?: string | null;
+  rank?: string | null;
+  department?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface FraudAccount {
   id: string;
   accountNumber: string;
@@ -28,7 +37,8 @@ export interface Report {
   status: "tip" | "pending" | "in_progress" | "completed"; // tip = แจ้งเบาะแส, pending = รอดำเนินการ, in_progress = กำลังดำเนินการ, completed = ออกเอกสารแล้ว
   createdAt: string;
   updatedAt: string;
-  assignedOfficer?: string;
+  assignedOfficerId?: string | null;
+  assignedOfficerName?: string | null;
 }
 
 export interface DashboardStats {
