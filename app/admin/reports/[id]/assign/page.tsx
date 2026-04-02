@@ -64,7 +64,13 @@ export default function AssignOfficerPage() {
       .then((r) => r.json())
       .then((j) => {
         if (j.ok && Array.isArray(j.data)) {
-          setOfficers(j.data as OfficerItem[]);
+          // API returns userName/userPhone — normalize to name/phone
+          const normalized = j.data.map((o: OfficerItem & { userName?: string | null; userPhone?: string | null }) => ({
+            ...o,
+            name: o.name ?? o.userName ?? null,
+            phone: o.phone ?? o.userPhone ?? null,
+          }));
+          setOfficers(normalized);
         }
       })
       .catch(() => {})

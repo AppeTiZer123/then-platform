@@ -24,8 +24,9 @@ import {
 } from "@/components/ui/dialog";
 
 const STATUS_TABS = [
-  { value: "completed", label: "ออกเอกสารแล้ว" },
-  { value: "tip",       label: "แจ้งเบาะแส" },
+  { value: "completed",   label: "ออกเอกสารแล้ว" },
+  { value: "tip",         label: "แจ้งเบาะแส" },
+  { value: "in_progress", label: "ได้รับมอบหมาย" },
 ] as const;
 
 const getStatusBadge = (status: string) => {
@@ -151,7 +152,13 @@ export default function AdminReportsPage() {
       <Card>
         <div className="border-b border-border px-2">
           <div className="flex overflow-x-auto -mb-px scrollbar-none">
-            {STATUS_TABS.map((tab) => {
+            {STATUS_TABS.filter((tab) => {
+              // แสดง tab in_progress เฉพาะเมื่อมีคดีที่ได้รับมอบหมาย
+              if (tab.value === "in_progress") {
+                return reports.some((r) => r.status === "in_progress");
+              }
+              return true;
+            }).map((tab) => {
               const count = reports.filter((r) => r.status === tab.value).length;
               return (
                 <button
@@ -344,89 +351,50 @@ export default function AdminReportsPage() {
       <Dialog open={!!openReportId} onOpenChange={(open) => { if (!open) setOpenReportId(null); }}>
         <DialogContent>
           <DialogTitle>รายละเอียดคดี</DialogTitle>
-          <DialogDescription className="mb-4">ข้อมูลตัวอย่างสำหรับรายการแจ้งความ</DialogDescription>
+          <DialogDescription className="mb-4">ข้อมูลสำหรับรายการแจ้งความ</DialogDescription>
           {selectedReport ? (
             (() => {
               const rpt = selectedReport;
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Left column */}
-                  <div className="space-y-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">หมายเลขคดี</p>
-                      <p className="text-lg font-semibold">{(rpt.caseNumber as string) ?? (rpt.case_number as string) ?? (rpt.case as string)}</p>
+                      <p className="text-lg font-semibold">{(rpt.caseNumber as string) ?? (rpt.case_number as string)}</p>
                     </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">สถานะ</p>
+                      <div className="mt-0.5">{getStatusBadge(rpt.status as string)}</div>
+                    </div>
+                  </div>
 
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">ผู้แจ้ง</p>
                       <p className="font-medium">{(rpt.reporterName as string) ?? (rpt.reporter_name as string) ?? 'ผู้เสียหาย'}</p>
                       <p className="text-xs text-muted-foreground">{(rpt.reporterPhone as string) ?? (rpt.reporter_phone as string) ?? '-'}</p>
                     </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">ชื่อ - นามสกุล</p>
-                      <p className="font-medium">{(rpt.reporterName as string) ?? (rpt.reporter_name as string) ?? '-'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">เลขบัตรประชาชน</p>
-                      <p className="font-medium">{(rpt.idCard as string) ?? (rpt.id_card as string) ?? '-'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">ยอดโอน</p>
-                      <p className="font-medium text-destructive">{formatCurrency(Number((rpt.transferAmount as number) ?? (rpt.damageAmount as number) ?? (rpt.damage_amount as number) ?? 0))}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">สินค้าที่สั่งซื้อ</p>
-                      <p className="font-medium">{(rpt.productOrdered as string) ?? (rpt.product as string) ?? (rpt.item as string) ?? '-'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">เลขบัญชี</p>
-                      <p className="font-medium">{(rpt.accountNumber as string) ?? (rpt.account_number as string) ?? (rpt.suspect_account as string) ?? '-'}</p>
-                    </div>
-                  </div>
-
-                  {/* Right column */}
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">เพจขายของ</p>
-                      <p className="font-medium">{(rpt.sellerPage as string) ?? (rpt.seller_page as string) ?? '-'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">วันโอนเงิน</p>
-                      <p className="font-medium">{formatDate((rpt.transferDate as string) ?? (rpt.transfer_date as string) ?? (rpt.incidentDate as string) ?? (rpt.incident_date as string))}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">วันที่ลงประกาศ</p>
-                      <p className="font-medium">{formatDate((rpt.postDate as string) ?? (rpt.post_date as string))}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">รายละเอียดเพิ่มเติม</p>
-                      <p className="text-sm">{(rpt.moreDetails as string) ?? (rpt.incidentDetails as string) ?? (rpt.incident_details as string) ?? '-'}</p>
-                    </div>
-
                     <div>
                       <p className="text-sm text-muted-foreground">วันเกิดเหตุ</p>
                       <p className="font-medium">{formatDate((rpt.incidentDate as string) ?? (rpt.incident_date as string))}</p>
                     </div>
+                  </div>
 
-                    <div>
-                      <p className="text-sm text-muted-foreground">ความเสียหายโดยประมาณ</p>
-                      <p className="text-lg font-semibold text-destructive">{formatCurrency(Number((rpt.damageAmount as number) ?? (rpt.damage_amount as number) ?? 0))}</p>
-                    </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">ความเสียหาย</p>
+                    <p className="text-lg font-semibold text-destructive">{formatCurrency(Number((rpt.damageAmount as number) ?? (rpt.damage_amount as number) ?? 0))}</p>
+                  </div>
 
-                    <div className="pt-4 flex justify-end gap-2">
-                      <DialogClose asChild>
-                        <Button variant="outline">ปิด</Button>
-                      </DialogClose>
-                      <Button onClick={() => { alert('ตัวอย่าง: ส่งข้อความถึงผู้แจ้ง'); }}>ส่งข้อความ</Button>
-                    </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">รายละเอียดเหตุการณ์</p>
+                    <p className="text-sm">{(rpt.incidentDetails as string) ?? (rpt.incident_details as string) ?? '-'}</p>
+                  </div>
+
+                  <div className="pt-2 flex justify-end gap-2">
+                    <DialogClose asChild>
+                      <Button variant="outline">ปิด</Button>
+                    </DialogClose>
+                    <Button onClick={() => { router.push(`/admin/reports/${rpt.id}/assign`); setOpenReportId(null); }}>มอบหมายเจ้าหน้าที่</Button>
                   </div>
                 </div>
               );
