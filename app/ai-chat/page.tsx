@@ -70,6 +70,8 @@ export default function AIChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isFirstRender = useRef(true);
+  const prevMessageCount = useRef(messages.length);
 
   // Persist messages to sessionStorage on change
   useEffect(() => {
@@ -92,14 +94,22 @@ export default function AIChatPage() {
     suspectSocialMedia: "",
   });
 
-  // Auto scroll to bottom
+  // Auto scroll to bottom — only when a NEW message is added, not on initial load or streaming chunks
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      prevMessageCount.current = messages.length;
+      return;
+    }
+    if (messages.length > prevMessageCount.current) {
+      prevMessageCount.current = messages.length;
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   // Focus input on mount
   useEffect(() => {
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   }, []);
 
   // Submit message to AI
@@ -178,7 +188,7 @@ export default function AIChatPage() {
       ]);
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   }, [input, isLoading, messages]);
 
@@ -247,7 +257,7 @@ export default function AIChatPage() {
 
   const handleQuickQuestion = (question: string) => {
     setInput(question);
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   };
 
   return (
@@ -272,7 +282,7 @@ export default function AIChatPage() {
         </div>
 
         {/* Chat Container */}
-        <Card className="flex-1 flex flex-col overflow-hidden">
+        <Card className="flex flex-col overflow-hidden" style={{ height: "62vh" }}>
           {/* Messages */}
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (

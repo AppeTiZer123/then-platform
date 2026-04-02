@@ -5,7 +5,7 @@ import { fraudRepo, reportRepo } from "@/lib/db/repositories";
 type FraudAccount = Awaited<ReturnType<typeof fraudRepo.getAll>>[number];
 
 /**
- * ค้นหาบัญชีมิจฉาชีพจาก DB
+ * ค้นหาบัญชีมิจฉาชีพจาก DB (คืนผลแรกที่พบ)
  */
 export async function searchFraudAccountFromDB(
   query: string,
@@ -15,6 +15,20 @@ export async function searchFraudAccountFromDB(
   } catch (error) {
     console.error("Database search error:", error);
     return null;
+  }
+}
+
+/**
+ * ค้นหาบัญชีมิจฉาชีพจาก DB (คืนทุกผลที่พบ)
+ */
+export async function searchAllFraudAccountsFromDB(
+  query: string,
+): Promise<FraudAccount[]> {
+  try {
+    return await fraudRepo.searchAll(query);
+  } catch (error) {
+    console.error("Database searchAll error:", error);
+    return [];
   }
 }
 

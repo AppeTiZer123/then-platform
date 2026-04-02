@@ -1,6 +1,6 @@
 import { streamText } from "ai";
 import { google } from "@ai-sdk/google";
-import { searchFraudAccountFromDB } from "@/lib/actions/fraud";
+import { searchAllFraudAccountsFromDB } from "@/lib/actions/fraud";
 
 // System prompt สำหรับ AI ผู้ช่วยของ THEN
 const SYSTEM_PROMPT = `คุณเป็น AI ผู้ช่วยของระบบ THEN (Thailand Honest Exchange Network) ที่ช่วยเหลือผู้ใช้เกี่ยวกับ:
@@ -15,15 +15,20 @@ const SYSTEM_PROMPT = `คุณเป็น AI ผู้ช่วยของ�
 3. ใช้ emoji เหมาะสม เช่น ⚠️ สำหรับคำเตือน ✅ สำหรับข้อมูลที่ดี
 4. หากผู้ใช้ถูกหลอก ให้แนะนำขั้นตอนอย่างชัดเจน
 5. หากมีข้อมูลบัญชีมิจฉาชีพจากระบบ ให้แสดงข้อมูลนั้นด้วย
-6. แนะนำให้ใช้ฟีเจอร์ "แจ้งเบาะแส" ของระบบ หากผู้ใช้ต้องการรายงานมิจฉาชีพ`;
+6. แนะนำให้ใช้ฟีเจอร์ "แจ้งเบาะแส" ของระบบ หากผู้ใช้ต้องการรายงานมิจฉาชีพ
+7. **สำคัญมาก:** หากผู้ใช้ถูกหลอกลวง โดนโกง หรือต้องการแจ้งความ ให้แนะนำให้ใช้ฟีเจอร์ "สร้างเอกสารแจ้งความ" ของเว็บไซต์ THEN โดยไปที่หน้า /report ซึ่งระบบจะช่วยสร้างเอกสารแจ้งความอัตโนมัติ ใช้เวลาไม่นาน และสามารถนำไปยื่นที่สถานีตำรวจได้ทันที`;
 
 // Regex patterns สำหรับตรวจจับข้อมูลที่ต้องค้นหา
 // ไม่ใช้ global flag เพื่อหลีกเลี่ยง lastIndex state bug
 const ACCOUNT_NUMBER_PATTERN = /\d{3}-?\d-?\d{5}-?\d|\d{10,}/;
 const PHONE_PATTERN = /0\d{1,2}[-\s]?\d{3}[-\s]?\d{4}|0\d{8,9}/;
 const NAME_PATTERNS = [
+  // "ตรวจสอบ X", "ค้นหา X", "เช็ค X", "หา X"
   /(?:ตรวจสอบ|ค้นหา|เช็ค|เช็ก|หา)(?:ชื่อ|บัญชี|คน|มิจ)?[\s:]+(.+)/i,
+  // "ชื่อ X"
   /ชื่อ\s+([ก-๙a-z].+)/i,
+  // "X มีมั้ย", "X มีไหม", "X อยู่ในระบบ", "X เป็นมิจ", "X มีคนชื่อนี้"
+  /^([ก-๙a-zA-Z\s]+?)\s+(?:มีมั้ย|มีไหม|มีคน|อยู่ในระบบ|เป็นมิจ|น่าเชื่อถือ|โกง|หลอก)/i,
 ];
 
 // Extract search query จาก message (เลขบัญชี → เบอร์ → ชื่อ)
@@ -69,19 +74,19 @@ export async function POST(req: Request) {
     if (lastUserMessage) {
       const query = extractSearchQuery(lastUserMessage.content);
       if (query) {
-        const fraudAccount = await searchFraudAccountFromDB(query);
-        if (fraudAccount) {
-          contextMessage = `
-[ข้อมูลจากฐานข้อมูลมิจฉาชีพ]
-พบบัญชีที่มีการรายงาน:
-- ชื่อบัญชี: ${fraudAccount.accountName || "ไม่ระบุ"}
-- เลขบัญชี: ${fraudAccount.accountNumber}
-- ธนาคาร: ${fraudAccount.bankName}
-- ถูกรายงาน: ${fraudAccount.reportCount || 0} ครั้ง
-- ความเสียหายรวม: ${fraudAccount.totalDamage || 0} บาท
-- สถานะ: ${fraudAccount.status}
-
-กรุณาแจ้งเตือนผู้ใช้เกี่ยวกับบัญชีนี้อย่างชัดเจน`;
+        const fraudAccounts = await searchAllFraudAccountsFromDB(query);
+        if (fraudAccounts.length > 0) {
+          const accountList = fraudAccounts.map((account, idx) => {
+            const name = account.accountName || "ไม่ระบุ";
+            const count = account.reportCount || 0;
+            const damage = account.totalDamage || 0;
+            return (idx + 1) + ". ชื่อบัญชี: " + name + " | เลขบัญชี: " + account.accountNumber + " | ธนาคาร: " + account.bankName + " | ถูกรายงาน: " + count + " ครั้ง | ความเสียหาย: " + damage + " บาท | สถานะ: " + account.status;
+          }).join("\n");
+          contextMessage =
+            "\n[ข้อมูลจากฐานข้อมูลมิจฉาชีพ]\n" +
+            "ค้นหา \"" + query + "\" พบ " + fraudAccounts.length + " บัญชีที่มีการรายงาน:\n" +
+            accountList +
+            "\n\nกรุณาแจ้งเตือนผู้ใช้อย่างชัดเจน และแสดงบัญชีทั้งหมดที่พบ";
         }
       }
     }

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -135,31 +134,10 @@ export default function UserManagement({ roleFilter }: Props) {
     })()
   }
 
-  // add user dialog state
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", phone: "", role: roleFilter || "user", invite: false })
   // edit dialog state
   const [editOpen, setEditOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", role: "user" })
-
-  const submitAdd = async () => {
-    try {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(form),
-      })
-      if (!res.ok) throw new Error(await res.text())
-      const json = await res.json()
-      setUsers((prev) => [json.user, ...prev])
-      setOpen(false)
-      setForm({ name: "", email: "", phone: "", role: roleFilter || "user", invite: false })
-    } catch (err) {
-      console.error(err)
-      alert("ไม่สามารถเพิ่มผู้ใช้ได้")
-    }
-  }
 
   const openEdit = (u: User) => {
     setEditingId(u.id)
@@ -223,54 +201,6 @@ export default function UserManagement({ roleFilter }: Props) {
           <div className="flex items-center gap-3 justify-between">
             <div className="flex items-center gap-3 w-full max-w-2xl">
               <Input className="flex-1" placeholder="ค้นหาชื่อหรืออีเมล" value={query} onChange={(e) => setQuery(e.target.value)} />
-
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">เพิ่มผู้ใช้</Button>
-                </DialogTrigger>
-                <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>เพิ่มผู้ใช้ใหม่</DialogTitle>
-                  <DialogDescription>กรอกข้อมูลเพื่อสร้างบัญชีใหม่หรือส่งคำเชิญ</DialogDescription>
-                </DialogHeader>
-
-                <div className="grid gap-3 py-2">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ชื่อ</label>
-                    <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">อีเมล</label>
-                    <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">เบอร์โทร</label>
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">บทบาท</label>
-                    <select className="w-full rounded-md border px-3 py-1" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "user" | "admin" })}>
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input id="invite" type="checkbox" checked={form.invite} onChange={(e) => setForm({ ...form, invite: e.target.checked })} />
-                    <label htmlFor="invite" className="text-sm">ส่งอีเมลเชิญให้สร้างบัญชี</label>
-                  </div>
-                </div>
-
-                <DialogFooter>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setOpen(false)}>ยกเลิก</Button>
-                    <Button onClick={submitAdd}>สร้าง</Button>
-                  </div>
-                </DialogFooter>
-              </DialogContent>
-              </Dialog>
             </div>
           </div>
 

@@ -14,13 +14,21 @@ type FraudAccount = typeof fraudAccounts.$inferSelect;
  */
 export const fraudRepo = {
   /**
-   * ค้นหาบัญชีมิจฉาชีพจาก query string
+   * ค้นหาบัญชีมิจฉาชีพจาก query string (คืนผลแรกที่พบ)
    */
   async search(query: string): Promise<FraudAccount | null> {
+    const results = await this.searchAll(query);
+    return results[0] || null;
+  },
+
+  /**
+   * ค้นหาบัญชีมิจฉาชีพจาก query string (คืนทุกผลที่พบ)
+   */
+  async searchAll(query: string): Promise<FraudAccount[]> {
     // ลบขีด (-) และ escape wildcard ก่อนค้น เพื่อให้จับคู่ได้ทั้งรูปแบบมีขีดและไม่มีขีด
     const normalizedQuery = escapeLike(query.replace(/-/g, "").trim());
 
-    const results = await db
+    return db
       .select()
       .from(fraudAccounts)
       .where(
@@ -30,9 +38,7 @@ export const fraudRepo = {
           ilike(fraudAccounts.accountName, `%${normalizedQuery}%`),
         ),
       )
-      .limit(1);
-
-    return results[0] || null;
+      .orderBy(desc(fraudAccounts.lastReportedAt));
   },
 
   /**

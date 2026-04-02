@@ -1,7 +1,7 @@
 // AI responses for consultation - uses Server Action for database queries
-import { searchFraudAccountFromDB } from "./actions/fraud";
+import { searchAllFraudAccountsFromDB } from "./actions/fraud";
 
-type FraudAccount = Awaited<ReturnType<typeof searchFraudAccountFromDB>>;
+type FraudAccount = Awaited<ReturnType<typeof searchAllFraudAccountsFromDB>>[number];
 
 export interface ChatMessage {
   id: string;
@@ -34,6 +34,8 @@ function extractSearchQuery(message: string): string | null {
     /ตรวจสอบ(?:ชื่อ)?\s*[:\s]?\s*(.+)/i,
     /ค้นหา(?:ชื่อ)?\s*[:\s]?\s*(.+)/i,
     /เช็ค(?:ชื่อ)?\s*[:\s]?\s*(.+)/i,
+    // "X มีมั้ย", "X มีคนชื่อนี้", "X อยู่ในระบบ" ฯลฯ
+    /^([ก-๙a-zA-Z\s]+?)\s+(?:มีมั้ย|มีไหม|มีคน|อยู่ในระบบ|เป็นมิจ|น่าเชื่อถือ|โกง|หลอก)/i,
   ];
 
   for (const pattern of namePatterns) {
@@ -50,15 +52,17 @@ function extractSearchQuery(message: string): string | null {
   return null;
 }
 
-// สร้าง response สำหรับผลการค้นหามิจฉาชีพ
-function formatFraudResponse(account: NonNullable<FraudAccount>): string {
+// สร้าง response สำหรับผลการค้นหามิจฉาชีพ (หลายผลลัพธ์)
+function formatFraudResponse(accounts: FraudAccount[]): string {
   const statusMap: Record<string, string> = {
     confirmed: "🔴 ยืนยันแล้ว",
     investigating: "🟡 กำลังตรวจสอบ",
     pending: "⚪ รอตรวจสอบ",
   };
 
-  return `⚠️ พบรายงานมิจฉาชีพ!
+  if (accounts.length === 1) {
+    const account = accounts[0];
+    return `⚠️ พบรายงานมิจฉาชีพ!
 
 📋 ข้อมูลบัญชี:
 • ชื่อบัญชี: ${account.accountName || "ไม่ระบุ"}
@@ -73,7 +77,25 @@ function formatFraudResponse(account: NonNullable<FraudAccount>): string {
 
 ⚠️ คำเตือน: โปรดระวังการทำธุรกรรมกับบุคคลนี้!
 
-หากคุณถูกหลอกลวงโดยบุคคลนี้ สามารถใช้ระบบ "เล่าเรื่อง ให้ AI สร้างเอกสาร" เพื่อสร้างเอกสารแจ้งความได้ครับ`;
+📄 หากคุณถูกหลอกลวงโดยบุคคลนี้ แนะนำให้ไปที่หน้า **สร้างรายงาน** (/report) เพื่อให้ AI ช่วยสร้างเอกสารแจ้งความอัตโนมัติ พร้อมนำไปยื่นที่สถานีตำรวจได้ทันทีครับ`;
+  }
+
+  // หลายผลลัพธ์
+  const accountLines = accounts.map((account, idx) => {
+    return `🔶 **บัญชีที่ ${idx + 1}**
+   • เลขบัญชี: ${account.accountNumber}
+   • ธนาคาร: ${account.bankName}
+   • ถูกรายงาน: ${account.reportCount || 0} ครั้ง | ความเสียหาย: ${formatCurrency(account.totalDamage)}
+   • สถานะ: ${statusMap[account.status || "pending"] || account.status}`;
+  }).join("\n\n");
+
+  return `⚠️ พบบัญชีไปในฝูกมิจฉาชีพทั้งหมด ${accounts.length} บัญชี!
+
+${accountLines}
+
+⚠️ คำเตือน: โปรดระวังการทำธุรกรรมกับบุคคลนี้ทุกบัญชี!
+
+📄 หากคุณถูกหลอกลวงโดยบุคคลนี้ แนะนำให้ไปที่หน้า **สร้างรายงาน** (/report) เพื่อให้ AI ช่วยสร้างเอกสารแจ้งความอัตโนมัติ พร้อมนำไปยื่นที่สถานีตำรวจได้ทันทีครับ`;
 }
 
 function formatNotFoundResponse(query: string): string {
@@ -105,6 +127,11 @@ function shouldSearchFraud(message: string): boolean {
     "โกง",
     "น่าเชื่อถือ",
     "ปลอดภัย",
+    "มีมั้ย",
+    "มีไหม",
+    "มีคน",
+    "อยู่ในระบบ",
+    "เป็นมิจ",
   ];
 
   const lowerMessage = message.toLowerCase();
@@ -127,12 +154,12 @@ const responses: { keywords: string[]; response: string }[] = [
   {
     keywords: ["โดนโกง", "ถูกหลอก", "โกง", "หลอก"],
     response:
-      "เข้าใจครับ การถูกหลอกลวงเป็นเรื่องที่น่าเศร้ามาก ขอแนะนำให้คุณ:\n\n1. **เก็บหลักฐานทั้งหมด** - ภาพหน้าจอการสนทนา, หลักฐานการโอนเงิน\n2. **แจ้งธนาคาร** - โทรแจ้งธนาคารทันทีเพื่อระงับบัญชี\n3. **แจ้งความ** - สามารถแจ้งความได้ที่ระบบของเราโดยกดปุ่ม 'เล่าเรื่อง ให้ AI สร้างเอกสาร'\n\nต้องการให้ช่วยอะไรเพิ่มเติมไหมครับ?",
+      "เข้าใจครับ การถูกหลอกลวงเป็นเรื่องที่น่าเศร้ามาก ขอแนะนำให้คุณ:\n\n1. **เก็บหลักฐานทั้งหมด** - ภาพหน้าจอการสนทนา, หลักฐานการโอนเงิน\n2. **แจ้งธนาคาร** - โทรแจ้งธนาคารทันทีเพื่อระงับบัญชี\n3. **สร้างเอกสารแจ้งความ** - ใช้ระบบของ THEN ที่หน้า /report เพื่อให้ AI ช่วยสร้างเอกสารแจ้งความอัตโนมัติ พร้อมนำไปยื่นที่สถานีตำรวจได้ทันที\n\n📄 **แนะนำ:** ไปที่หน้า **สร้างรายงาน** บนเว็บไซต์นี้ ระบบจะช่วยสร้างเอกสารแจ้งความให้โดยอัตโนมัติครับ\n\nต้องการให้ช่วยอะไรเพิ่มเติมไหมครับ?",
   },
   {
-    keywords: ["แจ้งความ", "แจ้ง", "ร้องเรียน"],
+    keywords: ["แจ้งความ", "แจ้ง", "ร้องเรียน", "เอกสาร"],
     response:
-      "ระบบของเราช่วยให้คุณสร้างเอกสารใบแจ้งความได้ง่ายๆ ครับ:\n\n1. กด 'เล่าเรื่อง ให้ AI สร้างเอกสาร'\n2. เล่าเหตุการณ์ที่เกิดขึ้น\n3. AI จะช่วยวิเคราะห์และสร้างเอกสารให้อัตโนมัติ\n\n**หมายเหตุ:** ต้องเข้าสู่ระบบก่อนจึงจะใช้งานได้ครับ",
+      "ระบบ THEN ช่วยให้คุณ **สร้างเอกสารแจ้งความ** ได้ง่ายๆ ครับ:\n\n📄 **วิธีใช้งาน:**\n1. ไปที่หน้า **สร้างรายงาน** (/report) บนเว็บไซต์นี้\n2. เล่าเหตุการณ์ที่เกิดขึ้น\n3. AI จะวิเคราะห์และสร้างเอกสารแจ้งความให้อัตโนมัติ\n4. ดาวน์โหลด PDF แล้วนำไปยื่นที่สถานีตำรวจได้เลย\n\n**หมายเหตุ:** ต้องเข้าสู่ระบบก่อนจึงจะใช้งานได้ครับ",
   },
   {
     keywords: ["เงิน", "โอน", "คืน", "ได้เงินคืน"],
@@ -152,7 +179,7 @@ const responses: { keywords: string[]; response: string }[] = [
 ];
 
 const defaultResponse =
-  "ขอบคุณสำหรับคำถามครับ ผมจะพยายามช่วยเหลือให้ดีที่สุด\n\nหากต้องการแจ้งเหตุการถูกหลอกลวง สามารถใช้ระบบ 'เล่าเรื่อง ให้ AI สร้างเอกสาร' ได้เลยครับ หรือหากต้องการตรวจสอบบัญชีมิจฉาชีพ สามารถพิมพ์เลขบัญชีหรือเบอร์โทรมาได้เลยครับ\n\nมีอะไรอื่นให้ช่วยไหมครับ?";
+  "ขอบคุณสำหรับคำถามครับ ผมจะพยายามช่วยเหลือให้ดีที่สุด\n\n💡 ระบบ THEN มีบริการดังนี้:\n• **ตรวจสอบมิจฉาชีพ** - พิมพ์เลขบัญชีหรือเบอร์โทรมาได้เลย\n• **สร้างเอกสารแจ้งความ** - ไปที่หน้า /report เพื่อให้ AI ช่วยสร้าง PDF แจ้งความ พร้อมยื่นตำรวจ\n• **แจ้งเบาะแส** - กดปุ่ม 'แจ้งเบาะแส' ด้านล่างเพื่อรายงานมิจฉาชีพ\n\nมีอะไรอื่นให้ช่วยไหมครับ?";
 
 // Format currency
 function formatCurrency(amount: number | string | null): string {
@@ -170,12 +197,12 @@ export async function getAIResponse(message: string): Promise<string> {
   const lowerMessage = message.toLowerCase();
   const trimmedMessage = message.trim();
 
-  // ขั้น 1: ดึงเลขบัญชี/เบอร์โทร/ชื่อ จาก regex แล้วค้นใน DB
+  // ขั้น 1: ดึงเลขบัญชี/เบอร์โทร/ชื่อ จาก regex แล้วค้นใน DB (คืนทุกผลลัพธ์)
   const extractedQuery = extractSearchQuery(message);
   if (extractedQuery) {
-    const result = await searchFraudAccountFromDB(extractedQuery);
-    if (result) {
-      return formatFraudResponse(result);
+    const results = await searchAllFraudAccountsFromDB(extractedQuery);
+    if (results.length > 0) {
+      return formatFraudResponse(results);
     }
     // extract ได้แต่ไม่เจอ + มี keyword ค้นหา → แจ้งว่าไม่พบ
     if (shouldSearchFraud(message)) {
@@ -184,9 +211,9 @@ export async function getAIResponse(message: string): Promise<string> {
   }
 
   // ขั้น 2: fallback — ค้นด้วยข้อความทั้งหมด (กรณีพิมพ์ชื่อเฉยๆ เช่น "นายสมชาย รักเงิน")
-  const directResult = await searchFraudAccountFromDB(trimmedMessage);
-  if (directResult) {
-    return formatFraudResponse(directResult);
+  const directResults = await searchAllFraudAccountsFromDB(trimmedMessage);
+  if (directResults.length > 0) {
+    return formatFraudResponse(directResults);
   }
 
   // ขั้น 3: จับคู่ keyword สำเร็จรูป (สวัสดี, โดนโกง, แจ้งความ ฯลฯ)
