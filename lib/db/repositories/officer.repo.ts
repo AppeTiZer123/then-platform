@@ -1,10 +1,17 @@
 import { db } from "@/lib/db";
-import { officers } from "@/lib/db/schema";
+import { officers, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 type Officer = typeof officers.$inferSelect;
 
 type CreateOfficerData = {
+  userId?: string | null;
+  rank?: string | null;
+  department?: string | null;
+  isActive?: boolean;
+};
+
+type UpdateOfficerData = {
   userId?: string | null;
   rank?: string | null;
   department?: string | null;
@@ -85,6 +92,41 @@ export const officerRepo = {
       .returning();
 
     return updated ?? null;
+  },
+
+  /**
+   * อัปเดตข้อมูล officer
+   */
+  async update(id: string, data: UpdateOfficerData): Promise<Officer | null> {
+    const [updated] = await db
+      .update(officers)
+      .set(data)
+      .where(eq(officers.id, id))
+      .returning();
+
+    return updated ?? null;
+  },
+
+  /**
+   * ดึง officers ที่ active พร้อมข้อมูล user
+   */
+  async getAllActiveWithUser() {
+    return db
+      .select({
+        id: officers.id,
+        userId: officers.userId,
+        rank: officers.rank,
+        department: officers.department,
+        isActive: officers.isActive,
+        createdAt: officers.createdAt,
+        userName: users.name,
+        userPhone: users.phone,
+        userEmail: users.email,
+      })
+      .from(officers)
+      .leftJoin(users, eq(officers.userId, users.id))
+      .where(eq(officers.isActive, true))
+      .orderBy(desc(officers.createdAt));
   },
 };
 

@@ -27,8 +27,16 @@ type User = {
   createdAt?: string
 }
 
+type Props = {
+  roleFilter?: "admin" | "user"
+}
 
-export default function UserManagement() {
+const ROLE_LABELS: Record<string, string> = {
+  admin: "ผู้ดูแลระบบ",
+  user: "ผู้ใช้งาน",
+}
+
+export default function UserManagement({ roleFilter }: Props) {
   const { data: session, update } = useSession()
   const [users, setUsers] = useState<User[]>([])
   const [query, setQuery] = useState("")
@@ -55,9 +63,11 @@ export default function UserManagement() {
     return () => { mounted = false }
   }, [])
 
-  const filtered = users.filter((u) =>
-    (u.name || "").toLowerCase().includes(query.toLowerCase()) || (u.email || "").toLowerCase().includes(query.toLowerCase())
-  )
+  const filtered = users.filter((u) => {
+    const matchesQuery = (u.name || "").toLowerCase().includes(query.toLowerCase()) || (u.email || "").toLowerCase().includes(query.toLowerCase())
+    const matchesRole = roleFilter ? u.role === roleFilter : true
+    return matchesQuery && matchesRole
+  })
 
   const toggleSuspend = (id: string) => {
     // call API to toggle suspend
@@ -127,7 +137,7 @@ export default function UserManagement() {
 
   // add user dialog state
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", phone: "", role: "user", invite: false })
+  const [form, setForm] = useState({ name: "", email: "", phone: "", role: roleFilter || "user", invite: false })
   // edit dialog state
   const [editOpen, setEditOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -144,7 +154,7 @@ export default function UserManagement() {
       const json = await res.json()
       setUsers((prev) => [json.user, ...prev])
       setOpen(false)
-      setForm({ name: "", email: "", phone: "", role: "staff", invite: false })
+      setForm({ name: "", email: "", phone: "", role: roleFilter || "user", invite: false })
     } catch (err) {
       console.error(err)
       alert("ไม่สามารถเพิ่มผู้ใช้ได้")
@@ -206,8 +216,8 @@ export default function UserManagement() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>การจัดการผู้ใช้</CardTitle>
-          <CardDescription>เพิ่ม, แก้ไข ข้อมูลของผู้ใช้</CardDescription>
+          <CardTitle>จัดการ{roleFilter ? ROLE_LABELS[roleFilter] : "ผู้ใช้"}</CardTitle>
+          <CardDescription>เพิ่ม, แก้ไข ข้อมูล{roleFilter ? ROLE_LABELS[roleFilter] : "ผู้ใช้"}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3 justify-between">
