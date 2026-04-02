@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     const suspectAccountNumber = extractedData.suspect_account_number as string;
     const suspectBankName = extractedData.suspect_bank_name as string;
     const suspectAccountName = extractedData.suspect_account_name as string;
+    const suspectIdCardNumber = extractedData.suspect_id_card_number as string;
     const suspectPhone = extractedData.perpetrator_phone as string;
     const damageAmount =
       parseFloat(
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
           bankName: suspectBankName,
           accountName: suspectAccountName || null,
           phoneNumber: suspectPhone || null,
+          idCardNumber: suspectIdCardNumber || null,
           reportCount: 1,
           totalDamage: String(damageAmount),
           status: "pending",

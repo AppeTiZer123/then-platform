@@ -151,7 +151,7 @@ export default function ConsultPage() {
                   <div className="flex-1">
                     <p className="font-medium text-sm">อีเมล</p>
                     <p className="text-xs text-muted-foreground">
-                      contact@then.go.th
+                      contact@meyameya.me
                     </p>
                   </div>
                 </div>

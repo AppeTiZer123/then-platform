@@ -366,7 +366,7 @@ export default function ReportPage() {
             </Card>
 
             {/* เอกสารของฉัน */}
-            {myReports.length > 0 && (
+            {myReports.some((r) => r.canDownload) && (
               <div className="mt-8">
                 <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
@@ -378,7 +378,7 @@ export default function ReportPage() {
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                   ) : (
-                    myReports.map((r) => (
+                    myReports.filter((r) => r.canDownload).map((r) => (
                       <Card key={r.id} className="border">
                         <CardContent className="py-4 px-5">
                           <div className="flex items-center justify-between gap-4">

@@ -29,6 +29,7 @@ interface FraudAccount {
   bankName: string;
   accountName: string | null;
   phoneNumber: string | null;
+  idCardNumber: string | null;
   reportCount: number | null;
   totalDamage: string | null;
   status: string | null;
@@ -61,6 +62,7 @@ export default function FraudListPage() {
     bankName: "",
     accountName: "",
     phoneNumber: "",
+    idCardNumber: "",
     reportCount: 0,
     totalDamage: 0,
     status: "pending" as FraudAccount["status"],
@@ -80,6 +82,7 @@ export default function FraudListPage() {
     bankName: "",
     accountName: "",
     phoneNumber: "",
+    idCardNumber: "",
     reportCount: 0,
     totalDamage: 0,
     status: "pending" as FraudAccount["status"],
@@ -118,6 +121,7 @@ export default function FraudListPage() {
       bankName: account.bankName,
       accountName: account.accountName || "",
       phoneNumber: account.phoneNumber || "",
+      idCardNumber: account.idCardNumber || "",
       reportCount: account.reportCount || 0,
       totalDamage: parseFloat(account.totalDamage || "0"),
       status: (account.status as "confirmed" | "pending") || "pending",
@@ -133,6 +137,7 @@ export default function FraudListPage() {
       bankName: editForm.bankName,
       accountName: editForm.accountName,
       phoneNumber: editForm.phoneNumber,
+      idCardNumber: editForm.idCardNumber,
       reportCount: Number(editForm.reportCount),
       totalDamage: Number(editForm.totalDamage),
       status: editForm.status || undefined,
@@ -147,6 +152,7 @@ export default function FraudListPage() {
                 bankName: editForm.bankName,
                 accountName: editForm.accountName,
                 phoneNumber: editForm.phoneNumber,
+                idCardNumber: editForm.idCardNumber,
                 reportCount: Number(editForm.reportCount),
                 totalDamage: String(editForm.totalDamage),
                 status: editForm.status,
@@ -213,6 +219,7 @@ export default function FraudListPage() {
                   bankName: addForm.bankName,
                   accountName: addForm.accountName,
                   phoneNumber: addForm.phoneNumber,
+                  idCardNumber: addForm.idCardNumber,
                   reportCount: Number(addForm.reportCount) || 0,
                   totalDamage: Number(addForm.totalDamage) || 0,
                   status: addForm.status || "pending",
@@ -229,6 +236,7 @@ export default function FraudListPage() {
                     bankName: "",
                     accountName: "",
                     phoneNumber: "",
+                    idCardNumber: "",
                     reportCount: 0,
                     totalDamage: 0,
                     status: "pending",
@@ -297,6 +305,19 @@ export default function FraudListPage() {
                   placeholder="08x-xxx-xxxx"
                 />
               </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">
+                  เลขบัตรประชาชนคนร้าย
+                </label>
+                <Input
+                  value={addForm.idCardNumber}
+                  onChange={(e) =>
+                    setAddForm((s) => ({ ...s, idCardNumber: e.target.value }))
+                  }
+                  placeholder="x-xxxx-xxxxx-xx-x"
+                  maxLength={17}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">
@@ -342,6 +363,7 @@ export default function FraudListPage() {
                       bankName: "",
                       accountName: "",
                       phoneNumber: "",
+                      idCardNumber: "",
                       reportCount: 0,
                       totalDamage: 0,
                       status: "pending",
@@ -410,6 +432,19 @@ export default function FraudListPage() {
                   onChange={(e) =>
                     setEditForm((s) => ({ ...s, phoneNumber: e.target.value }))
                   }
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">
+                  เลขบัตรประชาชนคนร้าย
+                </label>
+                <Input
+                  value={editForm.idCardNumber}
+                  onChange={(e) =>
+                    setEditForm((s) => ({ ...s, idCardNumber: e.target.value }))
+                  }
+                  placeholder="x-xxxx-xxxxx-xx-x"
+                  maxLength={17}
                 />
               </div>
               <div>

@@ -23,10 +23,19 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 
+const STATUS_TABS = [
+  { value: "completed", label: "ออกเอกสารแล้ว" },
+  { value: "tip",       label: "แจ้งเบาะแส" },
+] as const;
+
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "tip":
       return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">แจ้งเบาะแส</Badge>;
+    case "pending":
+      return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">รอดำเนินการ</Badge>;
+    case "in_progress":
+      return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">กำลังดำเนินการ</Badge>;
     case "completed":
       return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">ออกเอกสารแล้ว</Badge>;
     default:
@@ -37,7 +46,7 @@ const getStatusBadge = (status: string) => {
 export default function AdminReportsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("completed");
   const [openReportId, setOpenReportId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuReadyId, setMenuReadyId] = useState<string | null>(null);
@@ -122,7 +131,7 @@ export default function AdminReportsPage() {
     const matchesSearch =
       caseNum.toLowerCase().includes(searchQuery.toLowerCase()) ||
       name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || report.status === statusFilter;
+    const matchesStatus = report.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -138,30 +147,46 @@ export default function AdminReportsPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Status Tabs + Search */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="ค้นหาหมายเลขคดี หรือ ชื่อผู้แจ้ง..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="all">ทุกสถานะ</option>
-                <option value="tip">แจ้งเบาะแส</option>
-                <option value="completed">ออกเอกสารแล้ว</option>
-              </select>
-            </div>
+        <div className="border-b border-border px-2">
+          <div className="flex overflow-x-auto -mb-px scrollbar-none">
+            {STATUS_TABS.map((tab) => {
+              const count = reports.filter((r) => r.status === tab.value).length;
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setStatusFilter(tab.value)}
+                  className={`flex items-center gap-1.5 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    statusFilter === tab.value
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-full ${
+                      statusFilter === tab.value
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <CardContent className="pt-4 pb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ค้นหาหมายเลขคดี หรือ ชื่อผู้แจ้ง..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
         </CardContent>
       </Card>

@@ -7,9 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  FileText,
   AlertTriangle,
-  TrendingUp,
   Clock,
   CheckCircle,
 } from "lucide-react";
@@ -34,6 +32,15 @@ const getStatusBadge = (status: string) => {
           className="bg-yellow-50 text-yellow-700 border-yellow-200"
         >
           รอดำเนินการ
+        </Badge>
+      );
+    case "tip":
+      return (
+        <Badge
+          variant="outline"
+          className="bg-yellow-50 text-yellow-700 border-yellow-200"
+        >
+          แจ้งเบาะแส
         </Badge>
       );
     case "in_progress":
@@ -77,6 +84,7 @@ export default async function AdminDashboard() {
     inProgressReports: allReports.filter((r) => r.status === "in_progress")
       .length,
     completedReports: allReports.filter((r) => r.status === "completed").length,
+    tipReports: allReports.filter((r) => r.status === "tip").length,
     totalFraudAccounts: allFraudAccounts.length,
     totalDamageAmount: allReports.reduce(
       (sum, r) => sum + parseFloat(String(r.damageAmount || "0")),
@@ -94,25 +102,18 @@ export default async function AdminDashboard() {
 
   const stats = [
     {
-      title: "คดีทั้งหมด",
-      value: dashboardStats.totalReports,
-      changeType: "neutral" as const,
-      icon: FileText,
-      color: "bg-blue-500",
+      title: "ออกเอกสารแล้ว",
+      value: dashboardStats.completedReports,
+      changeType: "positive" as const,
+      icon: CheckCircle,
+      color: "bg-green-500",
     },
     {
-      title: "รอดำเนินการ",
-      value: dashboardStats.pendingReports,
+      title: "แจ้งเบาะแส",
+      value: dashboardStats.tipReports,
       changeType: "negative" as const,
       icon: Clock,
       color: "bg-yellow-500",
-    },
-    {
-      title: "กำลังดำเนินการ",
-      value: dashboardStats.inProgressReports,
-      changeType: "positive" as const,
-      icon: TrendingUp,
-      color: "bg-purple-500",
     },
     {
       title: "บัญชีมิจฉาชีพ",
@@ -123,21 +124,19 @@ export default async function AdminDashboard() {
     },
   ];
 
-  const recentReports = allReports.slice(0, 5);
+  const recentReports = allReports.filter((r) => r.status === "completed").slice(0, 5);
 
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           // decide link target
           const href =
             stat.title === "บัญชีมิจฉาชีพ"
               ? "/admin/fraud-list"
-              : stat.title === "คดีทั้งหมด"
-                ? "/admin/reports"
-                : `/admin/reports?status=${stat.title === "แจ้งเบาะแส" ? "tip" : stat.title === "ออกเอกสารแล้ว" ? "completed" : ""}`;
+              : `/admin/reports?status=${stat.title === "แจ้งเบาะแส" ? "tip" : "completed"}`;
 
           return (
             <Link
@@ -210,49 +209,32 @@ export default async function AdminDashboard() {
             <CardDescription>รายการที่ต้องดำเนินการ</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Link href="/admin/reports?status=tip" className="block">
-              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <p className="font-medium text-sm">เบาะแสใหม่</p>
-                    <p className="text-xs text-muted-foreground">
-                      รายงานจากผู้ใช้
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="secondary">
-                  {dashboardStats.pendingReports}
-                </Badge>
-              </div>
-            </Link>
-
-            <Link href="/admin/reports?status=in_progress" className="block">
-              <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="font-medium text-sm">กำลังดำเนินการ</p>
-                    <p className="text-xs text-muted-foreground">รอติดตามผล</p>
-                  </div>
-                </div>
-                <Badge variant="secondary">
-                  {dashboardStats.inProgressReports}
-                </Badge>
-              </div>
-            </Link>
-
             <Link href="/admin/reports?status=completed" className="block">
               <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <div>
-                    <p className="font-medium text-sm">เสร็จสิ้นแล้ว</p>
-                    <p className="text-xs text-muted-foreground">เดือนนี้</p>
+                    <p className="font-medium text-sm">ออกเอกสารแล้ว</p>
+                    <p className="text-xs text-muted-foreground">พร้อมยื่นตำรวจ</p>
                   </div>
                 </div>
                 <Badge variant="secondary">
                   {dashboardStats.completedReports}
+                </Badge>
+              </div>
+            </Link>
+
+            <Link href="/admin/reports?status=tip" className="block">
+              <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900 hover:shadow-sm hover:-translate-y-0.5 transition cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-sm">แจ้งเบาะแส</p>
+                    <p className="text-xs text-muted-foreground">รายงานจากผู้ใช้</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">
+                  {dashboardStats.tipReports}
                 </Badge>
               </div>
             </Link>

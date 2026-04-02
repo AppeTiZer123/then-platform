@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 
 // Expected CSV headers for fraud_accounts import
 const REQUIRED_HEADERS = ["accountNumber", "bankName"];
-const OPTIONAL_HEADERS = ["accountName", "phoneNumber", "status"];
+const OPTIONAL_HEADERS = ["accountName", "phoneNumber", "idCardNumber", "status"];
 const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
 
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
       "ธนาคารกสิกรไทย",
       "นาย ตัวอย่าง",
       "0812345678",
+      "1-1234-56789-01-2",
       "pending",
     ];
     const csv = "\uFEFF" + headers.join(",") + "\n" + example.join(",");
@@ -156,6 +157,7 @@ export async function POST(req: NextRequest) {
           bankName: row.bankName || existing.bankName,
           accountName: row.accountName || existing.accountName,
           phoneNumber: row.phoneNumber || existing.phoneNumber,
+          idCardNumber: row.idCardNumber || existing.idCardNumber,
           status: row.status || (existing.status ?? "pending"),
         });
         updated++;
@@ -165,6 +167,7 @@ export async function POST(req: NextRequest) {
           bankName: row.bankName,
           accountName: row.accountName || null,
           phoneNumber: row.phoneNumber || null,
+          idCardNumber: row.idCardNumber || null,
           status: row.status || "pending",
           reportCount: 0,
           totalDamage: "0",

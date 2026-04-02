@@ -37,12 +37,44 @@ const GREETING_MESSAGE: ChatMessage = {
   content: "สวัสดีครับ! 👋 ผมเป็น AI ผู้ช่วยของระบบ THEN\n\nผมพร้อมให้คำปรึกษาเรื่อง:\n• การถูกหลอกลวงออนไลน์\n• วิธีป้องกันตัวจากมิจฉาชีพ\n• ขั้นตอนการแจ้งความ\n• ตรวจสอบบัญชีที่น่าสงสัย\n\n💡 หากต้องการ **แจ้งข้อมูลมิจฉาชีพ** สามารถกดปุ่ม 'แจ้งเบาะแส' ด้านล่างได้เลยครับ\n\nมีอะไรให้ช่วยไหมครับ?",
 };
 
+const CHAT_STORAGE_KEY = "then-ai-chat-messages";
+
+/** แปลง markdown พื้นฐาน (**bold**, *italic*) เป็น HTML */
+function formatMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>");
+}
+
+function loadMessages(): ChatMessage[] {
+  if (typeof window === "undefined") return [GREETING_MESSAGE];
+  try {
+    const saved = sessionStorage.getItem(CHAT_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved) as ChatMessage[];
+      return parsed.length > 0 ? parsed : [GREETING_MESSAGE];
+    }
+  } catch { /* ignore parse errors */ }
+  return [GREETING_MESSAGE];
+}
+
+function saveMessages(messages: ChatMessage[]) {
+  try {
+    sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+  } catch { /* ignore quota errors */ }
+}
+
 export default function AIChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([GREETING_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessage[]>(loadMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Persist messages to sessionStorage on change
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
 
   // Quick Report state
   const [showQuickReport, setShowQuickReport] = useState(false);
@@ -268,9 +300,10 @@ export default function AIChatPage() {
                       : "bg-muted"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  <p
+                    className="text-sm whitespace-pre-wrap"
+                    dangerouslySetInnerHTML={{ __html: formatMarkdown(message.content) }}
+                  />
                 </div>
               </div>
             ))}

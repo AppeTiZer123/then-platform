@@ -23,18 +23,36 @@ export async function requestOTP(
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
+  // 1. บันทึก OTP ลง DB ก่อน — ถ้า DB พัง จะได้ไม่เสีย SMS เปล่า
+  let otpRecordId: string;
+  try {
+    const [record] = await db
+      .insert(otpVerifications)
+      .values({
+        phone,
+        otpCodeHash: hashOtp(code),
+        expiresAt,
+      })
+      .returning({ id: otpVerifications.id });
+
+    otpRecordId = record.id;
+  } catch (err) {
+    console.error("Failed to save OTP to database:", err);
+    return { success: false, message: "ระบบขัดข้อง ไม่สามารถสร้าง OTP ได้ กรุณาลองใหม่" };
+  }
+
+  // 2. ส่ง SMS — ถ้าส่งไม่ได้ ให้ mark record เป็น used เพื่อ invalidate
   try {
     await sendSms(phone, `รหัส OTP ของคุณคือ ${code} (หมดอายุใน 5 นาที)`);
   } catch (err) {
     console.error("Failed to send SMS:", err);
+    // Invalidate OTP record ที่สร้างไว้
+    await db
+      .update(otpVerifications)
+      .set({ isUsed: true })
+      .where(eq(otpVerifications.id, otpRecordId));
     return { success: false, message: "ไม่สามารถส่ง OTP ได้ กรุณาลองใหม่" };
   }
-
-  await db.insert(otpVerifications).values({
-    phone,
-    otpCodeHash: hashOtp(code),
-    expiresAt,
-  });
 
   return { success: true, message: "ส่ง OTP แล้ว" };
 }

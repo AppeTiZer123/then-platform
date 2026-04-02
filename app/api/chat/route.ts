@@ -87,7 +87,7 @@ export async function POST(req: Request) {
     }
 
     const result = streamText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3.1-flash-lite-preview"),
       system: SYSTEM_PROMPT + contextMessage,
       messages: windowedMessages,
     });
@@ -95,6 +95,21 @@ export async function POST(req: Request) {
     return result.toTextStreamResponse();
   } catch (error) {
     console.error("Chat API error:", error);
+
+    // ดัก quota exceeded (429) แสดงข้อความที่เข้าใจได้แทน error ดิบ
+    const isQuotaError =
+      error instanceof Error &&
+      (error.message.includes("429") ||
+        error.message.includes("quota") ||
+        error.message.includes("RESOURCE_EXHAUSTED"));
+
+    if (isQuotaError) {
+      return new Response(
+        "⚠️ ขณะนี้ระบบ AI มีผู้ใช้งานจำนวนมาก กรุณารอสักครู่แล้วลองใหม่อีกครั้งครับ",
+        { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง" }),
       { status: 500, headers: { "Content-Type": "application/json" } },

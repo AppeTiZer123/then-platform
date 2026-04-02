@@ -57,6 +57,7 @@ export const fraudAccounts = thenApp.table("fraud_accounts", {
     "0",
   ),
   status: varchar("status", { length: 20 }).default("pending"),
+  idCardNumber: varchar("id_card_number", { length: 50 }),
   lastReportedAt: timestamp("last_reported_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

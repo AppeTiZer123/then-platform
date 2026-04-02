@@ -250,7 +250,7 @@ export default function UserManagement({ roleFilter }: Props) {
 
                   <div>
                     <label className="block text-sm font-medium mb-1">บทบาท</label>
-                    <select className="w-full rounded-md border px-3 py-1" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                    <select className="w-full rounded-md border px-3 py-1" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as "user" | "admin" })}>
                       {ROLES.map((r) => (
                         <option key={r} value={r}>{r}</option>
                       ))}

@@ -32,6 +32,7 @@ const incidentSchema = z.object({
   suspect_account_number: z.string().describe("เลขบัญชีคนร้าย"),
   suspect_bank_name: z.string().describe("ธนาคารคนร้าย"),
   suspect_account_name: z.string().describe("ชื่อบัญชีคนร้าย"),
+  suspect_id_card_number: z.string().describe("เลขบัตรประชาชนคนร้าย (ถ้ามีระบุในเรื่องเล่า)"),
 
   // Checkbox fields for PDF
   case_type: z.string().describe(
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     // Use Gemini to extract data
     const { object } = await generateObject({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3.1-flash-lite-preview"),
       schema: incidentSchema,
       prompt: `
 วิเคราะห์ข้อความต่อไปนี้ ซึ่งเป็นเรื่องราวการถูกหลอกลวงออนไลน์ และสกัดข้อมูลออกมาเป็น JSON เพื่อนำไปลงบันทึกประจำวัน

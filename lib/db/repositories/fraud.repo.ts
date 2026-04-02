@@ -68,6 +68,7 @@ export const fraudRepo = {
     bankName: string;
     accountName?: string | null;
     phoneNumber?: string | null;
+    idCardNumber?: string | null;
     reportCount?: number;
     totalDamage?: string;
     status?: string;
@@ -117,6 +118,7 @@ export const fraudRepo = {
       bankName?: string;
       accountName?: string | null;
       phoneNumber?: string | null;
+      idCardNumber?: string | null;
       reportCount?: number;
       totalDamage?: string;
       status?: string;

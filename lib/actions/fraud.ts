@@ -88,6 +88,7 @@ export async function createQuickReport(
           bankName: data.suspectBankName,
           accountName: data.suspectAccountName || null,
           phoneNumber: data.suspectPhone || null,
+          idCardNumber: null,
           reportCount: 1,
           totalDamage: String(data.damageAmount || 0),
           status: "pending",
@@ -130,6 +131,7 @@ export async function createFraudAccount(data: {
   bankName: string;
   accountName?: string;
   phoneNumber?: string;
+  idCardNumber?: string;
   reportCount?: number;
   totalDamage?: number;
   status?: string;
@@ -140,6 +142,7 @@ export async function createFraudAccount(data: {
       bankName: data.bankName,
       accountName: data.accountName || null,
       phoneNumber: data.phoneNumber || null,
+      idCardNumber: data.idCardNumber || null,
       reportCount: data.reportCount || 0,
       totalDamage: String(data.totalDamage || 0),
       status: data.status || "pending",
@@ -158,6 +161,7 @@ export async function updateFraudAccount(
     bankName?: string;
     accountName?: string;
     phoneNumber?: string;
+    idCardNumber?: string;
     reportCount?: number;
     totalDamage?: number;
     status?: string;
@@ -170,6 +174,8 @@ export async function updateFraudAccount(
         data.accountName !== undefined ? data.accountName || null : undefined,
       phoneNumber:
         data.phoneNumber !== undefined ? data.phoneNumber || null : undefined,
+      idCardNumber:
+        data.idCardNumber !== undefined ? data.idCardNumber || null : undefined,
       totalDamage:
         data.totalDamage !== undefined ? String(data.totalDamage) : undefined,
     });
