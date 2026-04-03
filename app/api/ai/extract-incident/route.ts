@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
     const finalData = {
       ...emptyIncidentReportData,
       fullname: object.fullname || contactInfo?.name || "",
+      id_card: contactInfo?.idCard || object.id_card || "",
       phone: object.phone || contactInfo?.phone || "",
       email: contactInfo?.email || "",
 

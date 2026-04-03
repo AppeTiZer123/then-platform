@@ -44,6 +44,7 @@ export default function ReportPage() {
     name: user?.name || "",
     phone: user?.phone || "",
     email: "",
+    idCard: "",
   }));
   const [story, setStory] = useState("");
   const [referenceNumber, setReferenceNumber] = useState("");
@@ -166,7 +167,7 @@ export default function ReportPage() {
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (contactInfo.name && contactInfo.phone) {
+    if (contactInfo.name && contactInfo.phone && contactInfo.idCard) {
       setStep("story");
     }
   };
@@ -336,6 +337,23 @@ export default function ReportPage() {
                         setContactInfo({
                           ...contactInfo,
                           phone: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      เลขบัตรประชาชน *
+                    </label>
+                    <Input
+                      placeholder="1234567890123"
+                      maxLength={13}
+                      value={contactInfo.idCard}
+                      onChange={(e) =>
+                        setContactInfo({
+                          ...contactInfo,
+                          idCard: e.target.value.replace(/\D/g, ""),
                         })
                       }
                       required
