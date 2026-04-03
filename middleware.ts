@@ -12,8 +12,8 @@ export default auth((req) => {
       return NextResponse.redirect(new URL("/login", nextUrl));
     }
 
-    // Check role - เฉพาะ admin เท่านั้น
-    if (user?.role !== "admin") {
+    // Check role - admin และ officer เข้าถึงได้
+    if (user?.role !== "admin" && user?.role !== "officer") {
       return NextResponse.redirect(new URL("/unauthorized", nextUrl));
     }
   }
