@@ -138,6 +138,39 @@ export default function AdminReportsPage() {
 
   const selectedReport = openReportId ? (reports || []).find((r) => r.id === openReportId) || null : null;
 
+  const handleCompleteReport = async (reportId: string) => {
+    const confirmed = window.confirm("ยืนยันการจบงานคดีนี้หรือไม่?");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/admin/reports/${reportId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed" }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        alert(json?.error || json?.message || "ไม่สามารถจบงานได้");
+        return;
+      }
+
+      setReports((prev) =>
+        prev.map((r) =>
+          r.id === reportId
+            ? {
+                ...r,
+                status: "completed",
+              }
+            : r,
+        ),
+      );
+    } catch (err: unknown) {
+      console.error("Error completing report:", err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -301,12 +334,24 @@ export default function AdminReportsPage() {
                               >
                                 ดูรายละเอียด
                               </button>
-                              <button
-                                className="w-full text-left px-3 py-2 hover:bg-muted"
-                                onClick={() => { router.push(`/admin/reports/${report.id}/assign`); setOpenMenuId(null); }}
-                              >
-                                มอบหมายเจ้าหน้าที่
-                              </button>
+                              {report.status === "in_progress" ? (
+                                <button
+                                  className="w-full text-left px-3 py-2 text-green-700 hover:bg-muted"
+                                  onClick={async () => {
+                                    await handleCompleteReport(report.id);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  จบงาน
+                                </button>
+                              ) : (
+                                <button
+                                  className="w-full text-left px-3 py-2 hover:bg-muted"
+                                  onClick={() => { router.push(`/admin/reports/${report.id}/assign`); setOpenMenuId(null); }}
+                                >
+                                  มอบหมายเจ้าหน้าที่
+                                </button>
+                              )}
                               <button
                                 className="w-full text-left px-3 py-2 text-destructive hover:bg-muted"
                                 onClick={() => { alert('ลบตัวอย่าง (ยังไม่ได้เชื่อม)'); setOpenMenuId(null); }}
@@ -394,7 +439,19 @@ export default function AdminReportsPage() {
                     <DialogClose asChild>
                       <Button variant="outline">ปิด</Button>
                     </DialogClose>
-                    <Button onClick={() => { router.push(`/admin/reports/${rpt.id}/assign`); setOpenReportId(null); }}>มอบหมายเจ้าหน้าที่</Button>
+                    {rpt.status === "in_progress" ? (
+                      <Button
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={async () => {
+                          await handleCompleteReport(rpt.id);
+                          setOpenReportId(null);
+                        }}
+                      >
+                        จบงาน
+                      </Button>
+                    ) : (
+                      <Button onClick={() => { router.push(`/admin/reports/${rpt.id}/assign`); setOpenReportId(null); }}>มอบหมายเจ้าหน้าที่</Button>
+                    )}
                   </div>
                 </div>
               );
