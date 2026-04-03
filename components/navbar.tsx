@@ -21,9 +21,10 @@ export function Navbar() {
   
   const isAuthenticated = !!session?.user;
   const user = session?.user;
+  const normalizedRole = (user?.role || "").toLowerCase().trim();
   
-  // แสดง Admin link เฉพาะ role admin
-  const isAdmin = user?.role === "admin" || user?.role === "officer";
+  // แสดง Admin link สำหรับ admin และ officer
+  const isAdmin = normalizedRole === "admin" || normalizedRole === "officer";
   const navLinks = isAdmin ? [...publicLinks, adminLink] : publicLinks;
 
   const handleLogout = async () => {

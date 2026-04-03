@@ -5,6 +5,7 @@ export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   const user = req.auth?.user;
+  const normalizedRole = (user?.role || "").toLowerCase().trim();
 
   // Admin routes protection
   if (nextUrl.pathname.startsWith("/admin")) {
@@ -13,7 +14,7 @@ export default auth((req) => {
     }
 
     // Check role - admin และ officer เข้าถึงได้
-    if (user?.role !== "admin" && user?.role !== "officer") {
+    if (normalizedRole !== "admin" && normalizedRole !== "officer") {
       return NextResponse.redirect(new URL("/unauthorized", nextUrl));
     }
   }

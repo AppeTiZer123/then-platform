@@ -1,6 +1,29 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { findOrCreateUser, findUserById } from "@/lib/actions/user";
+import { officerRepo } from "@/lib/db/repositories";
+
+function normalizeRole(role: unknown): string {
+  if (typeof role !== "string") {
+    return "user";
+  }
+  return role.toLowerCase().trim() || "user";
+}
+
+async function resolveEffectiveRole(userId: string, role: unknown): Promise<string> {
+  const normalizedRole = normalizeRole(role);
+
+  if (normalizedRole === "admin" || normalizedRole === "officer") {
+    return normalizedRole;
+  }
+
+  const officerProfile = await officerRepo.findByUserId(userId);
+  if (officerProfile?.isActive) {
+    return "officer";
+  }
+
+  return normalizedRole;
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -38,7 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.phone = user.phone;
         token.name = user.name;
-        token.role = user.role;
+        token.role = await resolveEffectiveRole(user.id as string, user.role);
       }
       
       // trigger="update" เกิดเมื่อ client เรียก useSession().update() → ดึงข้อมูลล่าสุดจาก DB มา sync
@@ -47,7 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const freshUser = await findUserById(token.id as string);
         if (freshUser) {
           token.name = freshUser.name;
-          token.role = freshUser.role;
+          token.role = await resolveEffectiveRole(freshUser.id, freshUser.role);
           token.phone = freshUser.phone;
         }
       }
@@ -60,7 +83,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.phone = token.phone as string;
         session.user.name = token.name as string || null;
-        session.user.role = token.role as string || "user";
+        session.user.role = normalizeRole(token.role);
       }
       return session;
     },

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { officerRepo } from "@/lib/db/repositories";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -56,6 +59,13 @@ export async function DELETE(_req: Request, { params }: Params) {
         { ok: false, error: "ไม่พบเจ้าหน้าที่" },
         { status: 404 },
       );
+    }
+
+    if (deactivated.userId) {
+      await db
+        .update(users)
+        .set({ role: "user", updatedAt: new Date() })
+        .where(and(eq(users.id, deactivated.userId), eq(users.role, "officer")));
     }
 
     return NextResponse.json({ ok: true });

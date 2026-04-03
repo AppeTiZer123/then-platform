@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { officerRepo } from "@/lib/db/repositories";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   const session = await auth();
@@ -55,6 +58,12 @@ export async function POST(req: Request) {
       rank: rank || null,
       department: department || null,
     });
+
+    // sync role ให้ user ที่ถูกแต่งตั้ง officer
+    await db
+      .update(users)
+      .set({ role: "officer", updatedAt: new Date() })
+      .where(eq(users.id, userId));
 
     return NextResponse.json({ ok: true, data: officer }, { status: 201 });
   } catch (err: unknown) {
