@@ -62,8 +62,14 @@ export default function AdminConsultsPage() {
     const fetchConsultationDetail = async (id: string) => {
       try {
         // สำหรับความรวดเร็ว หาจาก state ก่อนถ้ามี responses ครบ
-        const cached = consultations.find(c => c.id === id);
-        if (cached && cached.responses && cached.responses.length > 0 && typeof cached.responses[0].message === 'string') {
+        const cached = consultations.find((c) => c.id === id);
+        if (
+          cached &&
+          cached.responses &&
+          cached.responses.length > 0 &&
+          typeof cached.responses[0].message === "string" &&
+          !!cached.responses[0].createdAt
+        ) {
           return;
         }
 
@@ -83,7 +89,7 @@ export default function AdminConsultsPage() {
     if (selectedCaseId) {
       fetchConsultationDetail(selectedCaseId);
     }
-  }, [selectedCaseId, consultations]);
+  }, [selectedCaseId]);
 
   useEffect(() => {
     fetchConsultations();

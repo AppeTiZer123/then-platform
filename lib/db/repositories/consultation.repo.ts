@@ -56,6 +56,18 @@ export const consultationRepo = {
           orderBy: [desc(consultationResponses.createdAt)],
           columns: {
             id: true,
+            message: true,
+            createdAt: true,
+            responderId: true,
+            responderName: true,
+          },
+          with: {
+            responder: {
+              columns: {
+                name: true,
+                role: true,
+              },
+            },
           },
         },
       },
