@@ -109,6 +109,7 @@ export default function AdminLayout({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   const user = session?.user;
+  const normalizedRole = (user?.role || "").toLowerCase().trim();
 
   // Handle logout
   const handleLogout = async () => {
@@ -156,7 +157,7 @@ export default function AdminLayout({
   }
 
   // Middleware จะ handle role check แล้ว แต่ใส่ fallback ไว้
-  if (user?.role !== "admin") {
+  if (normalizedRole !== "admin" && normalizedRole !== "officer") {
     return null;
   }
 

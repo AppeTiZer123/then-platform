@@ -3,7 +3,11 @@ import { auth } from "@/lib/auth";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
+  const normalizedRole = (session?.user?.role || "").toLowerCase().trim();
+  if (
+    !session?.user ||
+    (normalizedRole !== "admin" && normalizedRole !== "officer")
+  ) {
     return NextResponse.json(
       { ok: false, error: "Unauthorized" },
       { status: 401 },

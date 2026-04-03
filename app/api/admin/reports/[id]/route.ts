@@ -6,7 +6,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
+  const normalizedRole = (session?.user?.role || "").toLowerCase().trim();
+  if (
+    !session?.user ||
+    (normalizedRole !== "admin" && normalizedRole !== "officer")
+  ) {
     return NextResponse.json(
       { ok: false, error: "Unauthorized" },
       { status: 401 },
@@ -35,7 +39,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "admin") {
+  const normalizedRole = (session?.user?.role || "").toLowerCase().trim();
+  if (
+    !session?.user ||
+    (normalizedRole !== "admin" && normalizedRole !== "officer")
+  ) {
     return NextResponse.json(
       { ok: false, error: "Unauthorized" },
       { status: 401 },
