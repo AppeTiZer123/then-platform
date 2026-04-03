@@ -14,6 +14,7 @@ type Report = {
   createdAt?: Date | null;
   updatedAt?: Date | null;
   assignedOfficerId?: string | null;
+  assignedOfficerName?: string | null;
   // Additional fields that may exist in legacy table or new schema
   idCard?: string | null;
   transferAmount?: string | null;
@@ -90,6 +91,10 @@ function mapRepoResult(r: LegacyRow): Report {
     assignedOfficerId:
       (r.assignedOfficerId as string) ??
       (r.assigned_officer_id as string) ??
+      null,
+    assignedOfficerName:
+      (r.assignedOfficerName as string) ??
+      (r.assigned_officer_name as string) ??
       null,
   };
 }

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { reports } from "@/lib/db/schema";
-import { count as sqlCount, desc, eq } from "drizzle-orm";
+import { reports, officers, users } from "@/lib/db/schema";
+import { count as sqlCount, desc, eq, getTableColumns } from "drizzle-orm";
 
 type Report = typeof reports.$inferSelect;
 
@@ -22,10 +22,18 @@ export const reportRepo = {
   },
 
   /**
-   * ดึง report ทั้งหมด
+   * ดึง report ทั้งหมด พร้อมชื่อเจ้าหน้าที่ที่ได้รับมอบหมาย
    */
-  async getAll(): Promise<Report[]> {
-    return db.select().from(reports).orderBy(desc(reports.createdAt));
+  async getAll() {
+    return db
+      .select({
+        ...getTableColumns(reports),
+        assignedOfficerName: users.name,
+      })
+      .from(reports)
+      .leftJoin(officers, eq(reports.assignedOfficerId, officers.id))
+      .leftJoin(users, eq(officers.userId, users.id))
+      .orderBy(desc(reports.createdAt));
   },
 
   /**
